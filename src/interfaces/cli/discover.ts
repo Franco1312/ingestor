@@ -65,10 +65,7 @@ program
         msg: 'Discovery command failed',
         err: error as Error,
       });
-      console.error(
-        '\n❌ Discovery failed:',
-        error instanceof Error ? error.message : String(error)
-      );
+      // Error already logged above with structured logger
       process.exit(1);
     }
   });

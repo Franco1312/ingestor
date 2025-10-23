@@ -78,7 +78,11 @@ async function main(): Promise<void> {
 // Only run main if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
-    console.error('Fatal error:', error);
+    logger.error({
+      event: 'MAIN.FATAL_ERROR',
+      msg: 'Fatal error in main function',
+      err: error as Error,
+    });
     process.exit(1);
   });
 }

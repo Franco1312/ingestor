@@ -35,12 +35,20 @@ program
       // Validate date format
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(options.from)) {
-        console.error('❌ Invalid start date format. Use YYYY-MM-DD');
+        logger.error({
+          event: events.BACKFILL,
+          msg: 'Invalid start date format. Use YYYY-MM-DD',
+          err: new Error('Invalid start date format'),
+        });
         process.exit(1);
       }
 
       if (options.to && !dateRegex.test(options.to)) {
-        console.error('❌ Invalid end date format. Use YYYY-MM-DD');
+        logger.error({
+          event: events.BACKFILL,
+          msg: 'Invalid end date format. Use YYYY-MM-DD',
+          err: new Error('Invalid end date format'),
+        });
         process.exit(1);
       }
 
@@ -110,13 +118,12 @@ program
         process.exit(1);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error({
         event: events.BACKFILL,
         msg: 'Backfill operation failed',
         err: error as Error,
       });
-      console.error('❌ Backfill failed:', errorMessage);
+      // Error already logged above with structured logger
       process.exit(1);
     } finally {
       // Close database connections

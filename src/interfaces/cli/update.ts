@@ -127,13 +127,12 @@ program
         process.exit(1);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error({
         event: events.UPDATE,
         msg: 'Update operation failed',
         err: error as Error,
       });
-      console.error('❌ Update failed:', errorMessage);
+      // Error already logged above with structured logger
       process.exit(1);
     } finally {
       // Close database connections
