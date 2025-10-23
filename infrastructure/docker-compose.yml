@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: ingestor-postgres
+    environment:
+      POSTGRES_DB: ingestor
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U user -d ingestor']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ingestor-network
+
+  adminer:
+    image: adminer:4.8.1
+    container_name: ingestor-adminer
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+    networks:
+      - ingestor-network
+
+volumes:
+  postgres_data:
+
+networks:
+  ingestor-network:
+    driver: bridge

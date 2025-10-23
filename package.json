@@ -1,0 +1,71 @@
+{
+  "name": "ingestor",
+  "version": "1.0.0",
+  "description": "Production-grade time-series ingestion service for Argentina public data",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "update": "tsx src/interfaces/cli/update.ts",
+    "backfill": "tsx src/interfaces/cli/backfill.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\" \"*.{ts,js,json,cjs,yml,yaml}\" \"eslint.config.js\" \"prettier.config.cjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\" \"*.{ts,js,json,cjs,yml,yaml}\" \"eslint.config.js\" \"prettier.config.cjs\"",
+    "prepare": "husky install",
+    "pre-commit": "lint-staged",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsup src/index.ts --format cjs --dts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "time-series",
+    "ingestion",
+    "argentina",
+    "datos-gob-ar",
+    "timescaledb"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "agentkeepalive": "^4.6.0",
+    "axios": "^1.12.2",
+    "commander": "^11.1.0",
+    "node-cron": "^3.0.3",
+    "pg": "^8.11.3",
+    "pino": "^8.17.2",
+    "undici": "^6.19.5",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/node-cron": "^3.0.11",
+    "@types/pg": "^8.10.9",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "@vitest/coverage-v8": "^1.2.0",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.56.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "prettier": "^3.2.4",
+    "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,yml,yaml,cjs}": [
+      "prettier --write"
+    ]
+  }
+}
