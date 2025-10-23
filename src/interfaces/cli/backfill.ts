@@ -3,14 +3,10 @@
 import { Command } from 'commander';
 import { BackfillSeriesUseCase } from '../../application/usecases/backfillSeries.js';
 import { seriesRepository } from '../../infrastructure/db/seriesRepo.js';
-import {
-  BcraV3Provider,
-  DatosSeriesProvider,
-  ProviderChain,
-} from '../../infrastructure/providers/index.js';
+import { BcraMonetariasProvider, ProviderChain } from '../../infrastructure/providers/index.js';
 import { logger } from '../../infrastructure/log/logger.js';
+import { CLI as events } from '../../infrastructure/log/log-events.js';
 // import { config } from '../../infrastructure/config/index.js';
-import { db } from '../../infrastructure/db/pg.js';
 
 // Create CLI program
 const program = new Command();
@@ -25,22 +21,16 @@ program
   .option('--force', 'Force overwrite existing data in the date range')
   .option('-v, --verbose', 'Enable verbose logging')
   .action(async options => {
-    const loggerContext = logger.child({
-      operation: 'backfill',
-      seriesId: options.series,
-      startDate: options.from,
-      endDate: options.to,
-    });
-
     try {
-      // Check database connectivity
-      loggerContext.info('Checking database connectivity');
-      const isConnected = await db.isConnected();
-      if (!isConnected) {
-        loggerContext.error('Database connection failed');
-        process.exit(1);
-      }
-      loggerContext.info('Database connection successful');
+      logger.info({
+        event: events.BACKFILL,
+        msg: 'Starting backfill operation',
+        data: {
+          seriesId: options.series,
+          startDate: options.from,
+          endDate: options.to,
+        },
+      });
 
       // Validate date format
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -55,19 +45,17 @@ program
       }
 
       // Initialize providers and provider chain
-      const bcraProvider = new BcraV3Provider();
-      const datosProvider = new DatosSeriesProvider();
-      const providerChain = new ProviderChain([bcraProvider, datosProvider]);
+      const bcraMonetariasProvider = new BcraMonetariasProvider();
+      const providerChain = new ProviderChain([bcraMonetariasProvider]);
 
       // Initialize use case
-      const backfillUseCase = new BackfillSeriesUseCase(
-        seriesRepository,
-        providerChain,
-        loggerContext
-      );
+      const backfillUseCase = new BackfillSeriesUseCase(seriesRepository, providerChain);
 
       // Execute backfill
-      loggerContext.info('Starting backfill operation');
+      logger.info({
+        event: events.BACKFILL,
+        msg: 'Starting backfill operation',
+      });
       const result = await backfillUseCase.execute({
         seriesId: options.series,
         fromDate: options.from,
@@ -99,25 +87,40 @@ program
             console.log('No statistics available for this series');
           }
         } catch (statsError) {
-          loggerContext.warn('Failed to retrieve series statistics', {
-            error: statsError instanceof Error ? statsError.message : String(statsError),
+          logger.info({
+            event: events.BACKFILL,
+            msg: 'Failed to retrieve series statistics',
+            data: {
+              error: statsError instanceof Error ? statsError.message : String(statsError),
+            },
           });
         }
 
-        loggerContext.info('Backfill operation completed successfully');
+        logger.info({
+          event: events.BACKFILL,
+          msg: 'Backfill operation completed successfully',
+        });
         process.exit(0);
       } else {
-        loggerContext.error('Backfill operation failed', { error: result.error });
+        logger.error({
+          event: events.BACKFILL,
+          msg: 'Backfill operation failed',
+          err: new Error(result.error || 'Unknown error'),
+        });
         process.exit(1);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      loggerContext.error('Backfill operation failed', { error: errorMessage });
+      logger.error({
+        event: events.BACKFILL,
+        msg: 'Backfill operation failed',
+        err: error as Error,
+      });
       console.error('❌ Backfill failed:', errorMessage);
       process.exit(1);
     } finally {
       // Close database connections
-      await db.close();
+      // Repository handles database connection cleanup
     }
   });
 

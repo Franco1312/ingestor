@@ -2,6 +2,7 @@ import type { ISeriesRepository } from '../../domain/ports/index.js';
 import type { SeriesPoint, SeriesMetadata } from '../../domain/entities/index.js';
 import { db } from './pg.js';
 import { logger } from '../log/logger.js';
+import { SERIES_REPOSITORY as events } from '../log/log-events.js';
 
 // Repository implementation for series data persistence
 class SeriesRepository implements ISeriesRepository {
@@ -17,9 +18,11 @@ class SeriesRepository implements ISeriesRepository {
 
       return result.length > 0 ? result[0]!.ts : null;
     } catch (error) {
-      logger.error('Failed to get last date for series', {
-        seriesId,
-        error: error instanceof Error ? error.message : String(error),
+      logger.error({
+        event: events.GET_LAST_DATE,
+        msg: 'Failed to get last date for series',
+        err: error as Error,
+        data: { seriesId },
       });
       throw error;
     }
@@ -61,26 +64,38 @@ class SeriesRepository implements ISeriesRepository {
           const result = await client.query(query, params);
           upsertedCount += result.rowCount || 0;
 
-          logger.debug('Upserted batch of series points', {
-            batchSize: batch.length,
-            totalProcessed: upsertedCount,
-            seriesId: batch[0]?.seriesId,
+          logger.info({
+            event: events.UPSERT_POINTS,
+            msg: 'Upserted batch of series points',
+            data: {
+              batchSize: batch.length,
+              totalProcessed: upsertedCount,
+              seriesId: batch[0]?.seriesId,
+            },
           });
         }
 
-        logger.info('Completed upsert of series points', {
-          totalPoints: points.length,
-          upsertedCount,
-          seriesId: points[0]?.seriesId,
+        logger.info({
+          event: events.UPSERT_POINTS,
+          msg: 'Completed upsert of series points',
+          data: {
+            totalPoints: points.length,
+            upsertedCount,
+            seriesId: points[0]?.seriesId,
+          },
         });
 
         return upsertedCount;
       });
     } catch (error) {
-      logger.error('Failed to upsert series points', {
-        pointsCount: points.length,
-        seriesId: points[0]?.seriesId,
-        error: error instanceof Error ? error.message : String(error),
+      logger.error({
+        event: events.UPSERT_POINTS,
+        msg: 'Failed to upsert series points',
+        err: error as Error,
+        data: {
+          pointsCount: points.length,
+          seriesId: points[0]?.seriesId,
+        },
       });
       throw error;
     }
@@ -97,9 +112,11 @@ class SeriesRepository implements ISeriesRepository {
 
       return result.length > 0 ? result[0]! : null;
     } catch (error) {
-      logger.error('Failed to get series metadata', {
-        seriesId,
-        error: error instanceof Error ? error.message : String(error),
+      logger.error({
+        event: events.GET_SERIES_METADATA,
+        msg: 'Failed to get series metadata',
+        err: error as Error,
+        data: { seriesId },
       });
       throw error;
     }
@@ -112,14 +129,27 @@ class SeriesRepository implements ISeriesRepository {
     try {
       const result = await db.query<SeriesMetadata>('SELECT * FROM series ORDER BY id');
 
-      logger.debug('Retrieved all series metadata', { count: result.length });
+      logger.info({
+        event: events.GET_ALL_SERIES_METADATA,
+        msg: 'Retrieved all series metadata',
+        data: { count: result.length },
+      });
       return result;
     } catch (error) {
-      logger.error('Failed to get all series metadata', {
-        error: error instanceof Error ? error.message : String(error),
+      logger.error({
+        event: events.GET_ALL_SERIES_METADATA,
+        msg: 'Failed to get all series metadata',
+        err: error as Error,
       });
       throw error;
     }
+  }
+
+  /**
+   * Get all series from catalog (alias for getAllSeriesMetadata)
+   */
+  async getAllSeries(): Promise<SeriesMetadata[]> {
+    return this.getAllSeriesMetadata();
   }
 
   /**
@@ -145,15 +175,21 @@ class SeriesRepository implements ISeriesRepository {
         ]
       );
 
-      logger.info('Upserted series metadata', {
-        seriesId: metadata.id,
-        source: metadata.source,
-        frequency: metadata.frequency,
+      logger.info({
+        event: events.UPSERT_SERIES_METADATA,
+        msg: 'Upserted series metadata',
+        data: {
+          seriesId: metadata.id,
+          source: metadata.source,
+          frequency: metadata.frequency,
+        },
       });
     } catch (error) {
-      logger.error('Failed to upsert series metadata', {
-        seriesId: metadata.id,
-        error: error instanceof Error ? error.message : String(error),
+      logger.error({
+        event: events.UPSERT_SERIES_METADATA,
+        msg: 'Failed to upsert series metadata',
+        err: error as Error,
+        data: { seriesId: metadata.id },
       });
       throw error;
     }
@@ -204,9 +240,11 @@ class SeriesRepository implements ISeriesRepository {
         avgValue: stats.avg_value,
       };
     } catch (error) {
-      logger.error('Failed to get series statistics', {
-        seriesId,
-        error: error instanceof Error ? error.message : String(error),
+      logger.error({
+        event: events.GET_SERIES_STATS,
+        msg: 'Failed to get series statistics',
+        err: error as Error,
+        data: { seriesId },
       });
       throw error;
     }
@@ -223,20 +261,53 @@ class SeriesRepository implements ISeriesRepository {
       );
 
       const deletedCount = result.length || 0;
-      logger.info('Deleted series points in range', {
-        seriesId,
-        startDate,
-        endDate,
-        deletedCount,
+      logger.info({
+        event: events.DELETE_POINTS_IN_RANGE,
+        msg: 'Deleted series points in range',
+        data: {
+          seriesId,
+          startDate,
+          endDate,
+          deletedCount,
+        },
       });
 
       return deletedCount;
     } catch (error) {
-      logger.error('Failed to delete series points in range', {
+      logger.error({
+        event: events.DELETE_POINTS_IN_RANGE,
+        msg: 'Failed to delete series points in range',
+        err: error as Error,
+        data: { seriesId, startDate, endDate },
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update series metadata
+   */
+  async updateSeriesMetadata(seriesId: string, metadata: Record<string, unknown>): Promise<void> {
+    try {
+      await db.query('UPDATE series SET metadata = $1 WHERE id = $2', [
+        JSON.stringify(metadata),
         seriesId,
-        startDate,
-        endDate,
-        error: error instanceof Error ? error.message : String(error),
+      ]);
+
+      logger.info({
+        event: events.UPDATE_SERIES_METADATA,
+        msg: 'Updated series metadata',
+        data: {
+          seriesId,
+          metadataKeys: Object.keys(metadata),
+        },
+      });
+    } catch (error) {
+      logger.error({
+        event: events.UPDATE_SERIES_METADATA,
+        msg: 'Failed to update series metadata',
+        err: error as Error,
+        data: { seriesId },
       });
       throw error;
     }

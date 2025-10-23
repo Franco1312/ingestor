@@ -2,7 +2,11 @@
 -- These are example series IDs - verify actual IDs in the official Datos Argentina explorer
 
 INSERT INTO series (id, source, frequency, unit, metadata) VALUES
-  -- BCRA (Central Bank) series
+  -- BCRA (Central Bank) series - using BCRA API IDs
+  ('1', 'bcra', 'daily', 'USD', '{"description": "Reservas Internacionales del BCRA (en millones de dólares)", "source_url": "https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias/1"}'),
+  ('15', 'bcra', 'daily', 'ARS', '{"description": "Base monetaria - Total (en millones de pesos)", "source_url": "https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias/15"}'),
+  
+  -- Datos Argentina series (fallback)
   ('168.1_T_CAMBIOR_D_0_0_26', 'bcra', 'daily', 'ARS/USD', '{"description": "Official USD exchange rate (wholesale)", "source_url": "https://apis.datos.gob.ar/series/api/series?ids=168.1_T_CAMBIOR_D_0_0_26"}'),
   ('92.2_RESERVAS_IRES_0_0_32_40', 'bcra', 'daily', 'USD', '{"description": "Gross international reserves", "source_url": "https://apis.datos.gob.ar/series/api/series?ids=92.2_RESERVAS_IRES_0_0_32_40"}'),
   ('143.1_MONETARIO_0_0_2_3', 'bcra', 'daily', 'ARS', '{"description": "Monetary base", "source_url": "https://apis.datos.gob.ar/series/api/series?ids=143.1_MONETARIO_0_0_2_3"}'),

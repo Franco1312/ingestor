@@ -1,7 +1,9 @@
-import type { ISeriesRepository, ILogger } from '../../domain/ports/index.js';
+import type { ISeriesRepository } from '../../domain/ports/index.js';
 import type { SeriesPoint } from '../../domain/entities/index.js';
 import type { ProviderChain } from '../../domain/providers.js';
 import { getYesterdayString } from '../../domain/utils/index.js';
+import { logger } from '../../infrastructure/log/logger.js';
+import { FETCH_AND_STORE_SERIES_USE_CASE as events } from '../../infrastructure/log/log-events.js';
 
 /**
  * Result of fetch and store operation
@@ -21,18 +23,19 @@ export interface FetchAndStoreResult {
 export class FetchAndStoreSeriesUseCase {
   constructor(
     private readonly seriesRepository: ISeriesRepository,
-    private readonly providerChain: ProviderChain,
-    private readonly logger: ILogger
-  ) {
-    this.logger = logger.child({ useCase: 'FetchAndStoreSeries' });
-  }
+    private readonly providerChain: ProviderChain
+  ) {}
 
   /**
    * Execute fetch and store for multiple series
    */
   async executeMultiple(seriesIds: string[]): Promise<FetchAndStoreResult[]> {
-    this.logger.info('Starting fetch and store for multiple series', {
-      seriesCount: seriesIds.length,
+    logger.info({
+      event: events.EXECUTE_MULTIPLE,
+      msg: 'Starting fetch and store for multiple series',
+      data: {
+        seriesCount: seriesIds.length,
+      },
     });
 
     const results: FetchAndStoreResult[] = [];
@@ -43,7 +46,12 @@ export class FetchAndStoreSeriesUseCase {
         results.push(result);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        this.logger.error('Failed to process series', { seriesId, error: errorMessage });
+        logger.error({
+          event: events.EXECUTE_MULTIPLE,
+          msg: 'Failed to process series',
+          err: error as Error,
+          data: { seriesId },
+        });
         results.push({
           success: false,
           seriesId,
@@ -61,7 +69,11 @@ export class FetchAndStoreSeriesUseCase {
    * Execute fetch and store for a single series
    */
   async execute(seriesId: string): Promise<FetchAndStoreResult> {
-    this.logger.info('Starting fetch and store for series', { seriesId });
+    logger.info({
+      event: events.EXECUTE,
+      msg: 'Starting fetch and store for series',
+      data: { seriesId },
+    });
 
     try {
       const lastDate = await this.getLastAvailableDate(seriesId);
@@ -70,10 +82,14 @@ export class FetchAndStoreSeriesUseCase {
       const points = await this.fetchDataFromProvider(seriesId, fromDate);
       const storedCount = await this.storeData(points);
 
-      this.logger.info('Fetch and store completed', {
-        seriesId,
-        pointsFetched: points.length,
-        pointsStored: storedCount,
+      logger.info({
+        event: events.EXECUTE,
+        msg: 'Fetch and store completed',
+        data: {
+          seriesId,
+          pointsFetched: points.length,
+          pointsStored: storedCount,
+        },
       });
 
       return {
@@ -84,7 +100,12 @@ export class FetchAndStoreSeriesUseCase {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error('Fetch and store failed', { seriesId, error: errorMessage });
+      logger.error({
+        event: events.EXECUTE,
+        msg: 'Fetch and store failed',
+        err: error as Error,
+        data: { seriesId },
+      });
 
       return {
         success: false,

@@ -1,14 +1,12 @@
 import { BaseHttpClient } from '../baseHttpClient.js';
 import { config } from '../../config/index.js';
-import { logger } from '../../log/logger.js';
+// Remove unused import
 
 /**
  * Datos Argentina API Client
  * Simple client for Datos Argentina /series API
  */
 export class DatosArgentinaClient extends BaseHttpClient {
-  private readonly loggerContext = logger.child({ client: 'DatosArgentinaClient' });
-
   constructor() {
     super(
       config.externalServices.datosArgentina.baseUrl,

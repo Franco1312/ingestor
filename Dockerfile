@@ -8,17 +8,20 @@ RUN apk add --no-cache ca-certificates && \
 # Create app directory
 WORKDIR /app
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN pnpm install --frozen-lockfile --prod
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN pnpm run build
 
 # Create directory for certificates
 RUN mkdir -p /app/certs

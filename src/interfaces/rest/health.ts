@@ -1,5 +1,6 @@
 import { db } from '../../infrastructure/db/pg.js';
 import { logger } from '../../infrastructure/log/logger.js';
+import { DATABASE as events } from '../../infrastructure/log/log-events.js';
 
 // Health check function
 export const healthCheck = async (): Promise<{
@@ -8,7 +9,7 @@ export const healthCheck = async (): Promise<{
   services: { database: string };
   error?: string;
 }> => {
-  const loggerContext = logger.child({ endpoint: 'health' });
+  // Remove loggerContext as it's not available in the new logger
 
   try {
     // Check database connectivity
@@ -22,15 +23,23 @@ export const healthCheck = async (): Promise<{
       },
     };
 
-    loggerContext.info('Health check completed', {
-      status: healthStatus.status,
-      dbConnected: isDbConnected,
+    logger.info({
+      event: events.IS_CONNECTED,
+      msg: 'Health check completed',
+      data: {
+        status: healthStatus.status,
+        dbConnected: isDbConnected,
+      },
     });
 
     return healthStatus;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    loggerContext.error('Health check failed', { error: errorMessage });
+    logger.error({
+      event: events.IS_CONNECTED,
+      msg: 'Health check failed',
+      err: error as Error,
+    });
 
     return {
       status: 'unhealthy',
@@ -48,14 +57,17 @@ export const readinessCheck = async (): Promise<{
   services?: { database: string };
   reason?: string;
 }> => {
-  const loggerContext = logger.child({ endpoint: 'readiness' });
+  // Remove loggerContext as it's not available in the new logger
 
   try {
     // Check database connectivity and basic queries
     const isDbConnected = await db.isConnected();
 
     if (!isDbConnected) {
-      loggerContext.warn('Readiness check failed - database not connected');
+      logger.info({
+        event: events.IS_CONNECTED,
+        msg: 'Readiness check failed - database not connected',
+      });
       return {
         status: 'not ready',
         timestamp: new Date().toISOString(),
@@ -66,7 +78,10 @@ export const readinessCheck = async (): Promise<{
     // Test a simple query
     await db.query('SELECT 1');
 
-    loggerContext.info('Readiness check passed');
+    logger.info({
+      event: events.IS_CONNECTED,
+      msg: 'Readiness check passed',
+    });
     return {
       status: 'ready',
       timestamp: new Date().toISOString(),
@@ -76,7 +91,11 @@ export const readinessCheck = async (): Promise<{
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    loggerContext.error('Readiness check failed', { error: errorMessage });
+    logger.error({
+      event: events.IS_CONNECTED,
+      msg: 'Readiness check failed',
+      err: error as Error,
+    });
 
     return {
       status: 'not ready',

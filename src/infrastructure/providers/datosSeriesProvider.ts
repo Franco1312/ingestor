@@ -17,7 +17,7 @@ export class DatosSeriesProvider implements SeriesProvider {
   readonly name = 'DATOS_SERIES';
 
   private readonly datosClient: DatosArgentinaClient;
-  private readonly loggerContext = logger.child({ provider: this.name });
+  // Remove loggerContext as it's not available in the new logger
 
   constructor() {
     this.datosClient = new DatosArgentinaClient();
@@ -54,7 +54,11 @@ export class DatosSeriesProvider implements SeriesProvider {
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
     const { externalId, from, to, limit = config.app.pageSize, offset = 0 } = params;
 
-    this.loggerContext.info('Fetching Datos Argentina data', { externalId, from, to });
+    logger.info({
+      event: 'DATOS_SERIES_PROVIDER.FETCH_RANGE',
+      msg: 'Fetching Datos Argentina data',
+      data: { externalId, from, to },
+    });
 
     try {
       const response = await this.datosClient.getSeriesData({
@@ -67,9 +71,13 @@ export class DatosSeriesProvider implements SeriesProvider {
 
       const points = this.normalizeResponse(response, externalId);
 
-      this.loggerContext.info('Datos Argentina data fetched', {
-        externalId,
-        pointsFetched: points.length,
+      logger.info({
+        event: 'DATOS_SERIES_PROVIDER.FETCH_RANGE',
+        msg: 'Datos Argentina data fetched',
+        data: {
+          externalId,
+          pointsFetched: points.length,
+        },
       });
 
       return {
@@ -79,9 +87,11 @@ export class DatosSeriesProvider implements SeriesProvider {
         provider: this.name,
       };
     } catch (error) {
-      this.loggerContext.error('Datos Argentina data fetch failed', {
-        externalId,
-        error: error instanceof Error ? error.message : String(error),
+      logger.error({
+        event: 'DATOS_SERIES_PROVIDER.FETCH_RANGE',
+        msg: 'Datos Argentina data fetch failed',
+        err: error as Error,
+        data: { externalId },
       });
       throw error;
     }
@@ -99,7 +109,10 @@ export class DatosSeriesProvider implements SeriesProvider {
     }>
   > {
     // Datos Argentina API does not have a direct endpoint for listing all available series
-    this.loggerContext.warn('getAvailableSeries not implemented for Datos Argentina Provider');
+    logger.info({
+      event: 'DATOS_SERIES_PROVIDER.GET_AVAILABLE_SERIES',
+      msg: 'getAvailableSeries not implemented for Datos Argentina Provider',
+    });
     return [];
   }
 

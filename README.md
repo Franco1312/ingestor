@@ -1,342 +1,485 @@
-# Ingestor Service
+# 🏦 Ingestor - Argentina Economic Data Service
 
-A production-grade, scalable ingestion service that fetches PUBLIC OFFICIAL time-series data from Argentina's official APIs, normalizes it, and stores it with idempotency in a TimescaleDB database.
+> **Production-grade time-series ingestion service** for Argentina's official economic data from BCRA (Central Bank) and other government sources.
 
-## 🚀 Features
+## 📋 Table of Contents
 
-- **Time Series Ingestion**: Fetches data from Datos Argentina's official time series API
-- **Idempotent Storage**: Uses PostgreSQL + TimescaleDB with upsert operations
-- **Automated Scheduling**: Daily updates via cron scheduler (Argentina timezone)
-- **CLI Interface**: Command-line tools for manual updates and backfilling
-- **Robust Error Handling**: Retries with exponential backoff and jitter
-- **Structured Logging**: JSON logs with correlation IDs and context
-- **Type Safety**: Full TypeScript with strict mode and Zod validation
-- **Testing**: Unit tests with Vitest and comprehensive coverage
+- [Overview](#overview)
+- [Business Context](#business-context)
+- [Data Sources](#data-sources)
+- [Architecture](#architecture)
+- [Data Model](#data-model)
+- [API Endpoints](#api-endpoints)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Deployment](#deployment)
 
-## 📋 Prerequisites
+## 🎯 Overview
 
-- **Node.js 20+** (see `.nvmrc`)
-- **Docker & Docker Compose** for local infrastructure
-- **pnpm** package manager
+The **Ingestor** is a robust data ingestion service designed to collect, normalize, and store Argentina's official economic time-series data. It focuses primarily on **BCRA (Banco Central de la República Argentina)** monetary data while maintaining a fallback system for other government sources.
 
-## 🛠️ Quick Start
+### Key Features
 
-### 1. Clone and Install
+- ✅ **Real-time data ingestion** from BCRA Monetarias v3 API
+- ✅ **Idempotent upserts** preventing duplicate data
+- ✅ **Automatic failover** between data providers
+- ✅ **Structured logging** with comprehensive observability
+- ✅ **Dockerized deployment** with PostgreSQL + TimescaleDB
+- ✅ **Scheduled updates** with configurable cron jobs
+- ✅ **CLI tools** for manual operations and debugging
 
-```bash
-git clone <repository-url>
-cd ingestor
-pnpm install
+## 🏢 Business Context
+
+### What Problem Does It Solve?
+
+Argentina's economic data is scattered across multiple government agencies and APIs. Financial institutions, research organizations, and businesses need:
+
+1. **Reliable access** to official economic indicators
+2. **Historical data** for analysis and modeling
+3. **Real-time updates** for decision-making
+4. **Data normalization** across different sources
+5. **High availability** and fault tolerance
+
+### Target Users
+
+- **Financial institutions** monitoring economic indicators
+- **Research organizations** analyzing Argentina's economy
+- **Business intelligence** teams requiring economic data
+- **Data scientists** building economic models
+- **Government agencies** needing consolidated data views
+
+## 📊 Data Sources
+
+### Primary Source: BCRA Monetarias v3
+
+**Base URL**: `https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias`
+
+The service primarily ingests data from BCRA's official monetary statistics API, which provides:
+
+- **International Reserves** (Reservas Internacionales)
+- **Monetary Base** (Base Monetaria)
+- **Exchange Rates** (Tipos de Cambio)
+- **Interest Rates** (Tasas de Interés)
+- **Banking Statistics** (Estadísticas Bancarias)
+
+### API Endpoints Used
+
+| Endpoint | Purpose | Example |
+|----------|---------|---------|
+| `GET /Monetarias` | Get all available variables | `GET /estadisticas/v3.0/Monetarias` |
+| `GET /Monetarias/{id}` | Get specific variable data | `GET /estadisticas/v3.0/Monetarias/1` |
+
+### API Parameters
+
+- **`desde`**: Start date (YYYY-MM-DD)
+- **`hasta`**: End date (YYYY-MM-DD)
+- **`limit`**: Page size (default: 1000)
+- **`offset`**: Page offset for pagination
+
+### Fallback Source: Datos Argentina
+
+**Base URL**: `https://apis.datos.gob.ar/series/api`
+
+Used as a fallback when BCRA API is unavailable, providing access to:
+- INDEC economic indicators
+- Other government statistics
+- Historical data from various agencies
+
+## 🏗️ Architecture
+
+### Clean Architecture Implementation
+
+```
+src/
+├── domain/           # Business logic and entities
+│   ├── entities/     # Core business objects
+│   ├── ports/        # Interface definitions
+│   └── providers.ts  # Provider abstractions
+├── application/      # Use cases and business rules
+│   └── usecases/     # Application logic
+├── infrastructure/   # External concerns
+│   ├── config/       # Configuration management
+│   ├── db/          # Database layer
+│   ├── http/        # HTTP clients
+│   ├── providers/   # Provider implementations
+│   └── sched/       # Scheduling
+└── interfaces/      # External interfaces
+    ├── cli/         # Command-line interfaces
+    └── rest/        # REST API endpoints
 ```
 
-### 2. Set Up Environment
+### Key Components
 
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+1. **Provider Chain**: Orchestrates data fetching with automatic failover
+2. **Repository Pattern**: Abstracts database operations
+3. **Use Cases**: Encapsulates business logic
+4. **HTTP Clients**: Handle external API communication
+5. **Scheduler**: Manages automated data updates
 
-### 3. Start Infrastructure
+## 🗄️ Data Model
 
-```bash
-# Start PostgreSQL + TimescaleDB
-docker-compose -f infrastructure/docker-compose.yml up -d
+### Core Tables
 
-# Wait for database to be ready (check with docker-compose logs)
-```
-
-### 4. Initialize Database
-
-```bash
-# Apply schema and seed data
-psql -h localhost -U user -d ingestor -f infrastructure/db/init/001_schema.sql
-psql -h localhost -U user -d ingestor -f infrastructure/db/init/010_seed_series.sql
-```
-
-### 5. Run the Service
-
-```bash
-# Update all whitelisted series
-pnpm update
-
-# Backfill specific series
-pnpm backfill -- --series 168.1_T_CAMBIOR_D_0_0_26 --from 2024-01-01
-
-# Start the scheduler service
-pnpm dev
-```
-
-## 📁 Project Structure
-
-```
-ingestor/
-├── src/
-│   ├── domain/              # Domain entities and ports
-│   │   ├── entities.ts      # SeriesPoint, SeriesMetadata
-│   │   └── ports.ts         # Repository and service interfaces
-│   ├── application/         # Use cases
-│   │   └── usecases/
-│   │       ├── fetchAndStoreSeries.ts
-│   │       └── backfillSeries.ts
-│   ├── infrastructure/      # External dependencies
-│   │   ├── config/env.ts    # Environment validation
-│   │   ├── db/              # Database layer
-│   │   ├── http/            # API clients
-│   │   ├── log/             # Logging setup
-│   │   └── sched/           # Cron scheduler
-│   └── interfaces/          # Entry points
-│       ├── cli/             # Command-line interface
-│       └── rest/            # REST endpoints (health checks)
-├── infrastructure/          # Docker and database setup
-├── test/                    # Unit tests
-└── .github/workflows/       # CI/CD pipeline
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `APP_TIMEZONE` | Application timezone | `America/Argentina/Buenos_Aires` |
-| `LOG_LEVEL` | Logging level | `info` |
-| `HTTP_TIMEOUT_MS` | HTTP request timeout | `15000` |
-| `HTTP_RETRIES` | Number of retry attempts | `3` |
-| `DATOS_SERIES_BASE` | Datos Argentina API base URL | `https://apis.datos.gob.ar/series/api` |
-| `SERIES_WHITELIST` | Comma-separated list of series IDs | Required |
-| `PAGE_SIZE` | API pagination size | `1000` |
-
-### Series Configuration
-
-The service fetches data for series listed in `SERIES_WHITELIST`. Example series IDs:
-
-- `168.1_T_CAMBIOR_D_0_0_26` - Official USD exchange rate (daily)
-- `92.2_RESERVAS_IRES_0_0_32_40` - Gross international reserves (daily)
-- `143.1_MONETARIO_0_0_2_3` - Monetary base (daily)
-
-## 🗄️ Database Schema
-
-### Tables
-
-**`series`** - Series catalog
+#### `series` - Series Catalog
 ```sql
 CREATE TABLE series (
-  id        TEXT PRIMARY KEY,    -- e.g., "bcra.fx_reserves_gross"
-  source    TEXT NOT NULL,       -- "bcra" | "indec"
-  frequency TEXT NOT NULL,       -- "daily" | "monthly"
-  unit      TEXT,                -- "USD" | "ARS" | "ARS/USD"
-  metadata  JSONB
+    id VARCHAR PRIMARY KEY,           -- Series identifier
+    source VARCHAR NOT NULL,          -- Data source (bcra, indec, etc.)
+    frequency VARCHAR NOT NULL,       -- Data frequency (daily, monthly)
+    unit VARCHAR,                     -- Measurement unit
+    metadata JSONB                    -- Additional metadata
 );
 ```
 
-**`series_points`** - Time series data
+#### `series_points` - Time Series Data
 ```sql
 CREATE TABLE series_points (
-  series_id TEXT REFERENCES series(id),
-  ts        DATE NOT NULL,
-  value     NUMERIC NOT NULL,
-  PRIMARY KEY (series_id, ts)
+    series_id VARCHAR NOT NULL,       -- Reference to series.id
+    ts DATE NOT NULL,                 -- Timestamp (YYYY-MM-DD)
+    value NUMERIC NOT NULL,           -- Data value
+    PRIMARY KEY (series_id, ts)
 );
+```
+
+### TimescaleDB Integration
+
+The `series_points` table is configured as a **TimescaleDB hypertable** for optimal time-series performance:
+
+```sql
+SELECT create_hypertable('series_points', 'ts');
+```
+
+### Sample Data
+
+#### Series Catalog
+```json
+{
+  "id": "1",
+  "source": "bcra",
+  "frequency": "daily",
+  "unit": "USD",
+  "metadata": {
+    "bcra_idVariable": 1,
+    "description": "Reservas Internacionales del BCRA (en millones de dólares)",
+    "source_url": "https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias/1"
+  }
+}
+```
+
+#### Time Series Points
+```
+series_id |     ts     | value 
+----------|------------|-------
+1         | 2025-10-21 | 40540
+1         | 2025-10-20 | 41316
+1         | 2025-10-17 | 41170
+15        | 2025-10-21 | 40177879
+15        | 2025-10-20 | 40972264
+```
+
+## 🔌 API Endpoints
+
+### BCRA Monetarias v3 API
+
+#### Get Available Variables
+```http
+GET https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias
+```
+
+**Response**:
+```json
+{
+  "status": 200,
+  "results": [
+    {
+      "idVariable": 1,
+      "descripcion": "Reservas Internacionales del BCRA",
+      "categoria": "Principales Variables",
+      "fecha": "2025-10-21",
+      "valor": 40540.0
+    }
+  ]
+}
+```
+
+#### Get Variable Data
+```http
+GET https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias/1?desde=2024-01-01&hasta=2024-03-01
+```
+
+**Response**:
+```json
+{
+  "status": 200,
+  "metadata": {
+    "resultset": {
+      "count": 42,
+      "offset": 0,
+      "limit": 1000
+    }
+  },
+  "results": [
+    {
+      "idVariable": 1,
+      "fecha": "2024-03-01",
+      "valor": 27334.0
+    }
+  ]
+}
 ```
 
 ## 🚀 Usage
 
 ### CLI Commands
 
+#### Discovery (Map Series to BCRA Variables)
 ```bash
-# Update all whitelisted series
-pnpm update
-
-# Update specific series
-pnpm update -- --series 168.1_T_CAMBIOR_D_0_0_26
-
-# Backfill series for date range
-pnpm backfill -- --series 168.1_T_CAMBIOR_D_0_0_26 --from 2024-01-01 --to 2024-01-31
-
-# Force overwrite existing data
-pnpm backfill -- --series 168.1_T_CAMBIOR_D_0_0_26 --from 2024-01-01 --force
+npm run discover
 ```
+- Fetches all available BCRA variables
+- Maps catalog series to BCRA `idVariable`
+- Updates series metadata with mapping information
 
-### Scheduler Service
-
+#### Backfill (Historical Data)
 ```bash
-# Start the scheduler (runs daily at 08:05 AM Argentina time)
-pnpm dev
+npm run backfill -- --series 1 --from 2024-01-01 --to 2024-03-01
 ```
+- Fetches historical data for specified date range
+- Implements pagination for large datasets
+- Performs idempotent upserts
+
+#### Daily Update
+```bash
+npm run update
+```
+- Fetches latest data for all mapped series
+- Automatically determines date ranges
+- Updates only new data points
 
 ### Programmatic Usage
 
 ```typescript
-import { scheduler } from './src/index.js';
+import { BcraMonetariasProvider } from './src/infrastructure/providers/bcraMonetariasProvider.js';
+import { FetchAndStoreSeriesUseCase } from './src/application/usecases/fetchAndStoreSeries.js';
 
-// Start scheduler
-scheduler.start();
+// Initialize provider
+const provider = new BcraMonetariasProvider();
 
-// Manual update
-await scheduler.executeManualUpdate();
+// Fetch data
+const result = await provider.fetchRange({
+  externalId: '1',
+  from: '2024-01-01',
+  to: '2024-03-01'
+});
+
+console.log(`Fetched ${result.points.length} data points`);
 ```
 
-## 🧪 Testing
+## ⚙️ Configuration
+
+### Environment Variables
 
 ```bash
-# Run all tests
-pnpm test
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5433/ingestor
 
-# Run tests in watch mode
-pnpm test:watch
+# External Services
+BCRA_V3_BASE=https://api.bcra.gob.ar
+DATOS_SERIES_BASE=https://apis.datos.gob.ar/series/api
 
-# Run with coverage
-pnpm test -- --coverage
+# Provider Configuration
+PRIMARY_PROVIDER=BCRA_MONETARIAS
+FALLBACK_PROVIDER=DATOS_SERIES
+
+# HTTP Configuration
+HTTP_TIMEOUT_MS=20000
+HTTP_RETRIES=3
+HTTP_BACKOFF_BASE_MS=250
+HTTP_BACKOFF_FACTOR=2
+HTTP_BACKOFF_MAX_MS=8000
+
+# Application
+APP_TIMEZONE=America/Argentina/Buenos_Aires
+
+# Circuit Breaker
+BREAKER_FAILURE_THRESHOLD=5
+BREAKER_WINDOW_MS=600000
+BREAKER_OPEN_MS=900000
+
+# TLS Configuration (Production)
+# BCRA_CA_BUNDLE_PATH=/app/certs/bcra-chain.pem
 ```
 
-## 🔍 Monitoring
+### Series Configuration
 
-### Health Checks
+The service maintains a catalog of series in the `series` table:
 
-- **Health**: `GET /health` - Basic service health
-- **Readiness**: `GET /ready` - Database connectivity check
-
-### Logging
-
-The service uses structured JSON logging with context:
-
-```json
-{
-  "level": "info",
-  "time": "2024-01-15T08:05:00.000Z",
-  "service": "ingestor",
-  "seriesId": "168.1_T_CAMBIOR_D_0_0_26",
-  "msg": "Fetch and store operation completed",
-  "pointsFetched": 5,
-  "pointsStored": 5,
-  "duration": 1250
-}
+```sql
+-- BCRA Series
+INSERT INTO series (id, source, frequency, unit, metadata) VALUES
+('1', 'bcra', 'daily', 'USD', '{"bcra_idVariable": 1, "description": "Reservas Internacionales"}'),
+('15', 'bcra', 'daily', 'ARS', '{"bcra_idVariable": 15, "description": "Base Monetaria"}');
 ```
 
 ## 🛠️ Development
 
-### Setup Development Environment
+### Prerequisites
+
+- Node.js 20+
+- Docker & Docker Compose
+- PostgreSQL 16 with TimescaleDB
+
+### Setup
 
 ```bash
+# Clone repository
+git clone <repository-url>
+cd ingestor
+
 # Install dependencies
 pnpm install
 
-# Start database
-docker-compose -f infrastructure/docker-compose.yml up -d
+# Start PostgreSQL
+docker-compose up -d postgres
 
-# Run linting
-pnpm lint
+# Run discovery to map series
+NODE_ENV=local npm run discover
 
-# Run type checking
-pnpm typecheck
+# Run backfill for historical data
+NODE_ENV=local npm run backfill -- --series 1 --from 2024-01-01 --to 2024-03-01
 
-# Build project
-pnpm build
+# Run daily update
+NODE_ENV=local npm run update
 ```
 
-### Code Quality
-
-- **ESLint**: Code linting with TypeScript rules
-- **Prettier**: Code formatting
-- **TypeScript**: Strict mode with comprehensive type checking
-- **Vitest**: Unit testing framework
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-**Database Connection Failed**
-```bash
-# Check if PostgreSQL is running
-docker-compose -f infrastructure/docker-compose.yml ps
-
-# Check database logs
-docker-compose -f infrastructure/docker-compose.yml logs postgres
-```
-
-**API Rate Limiting**
-- The service includes automatic retries with exponential backoff
-- Check logs for retry attempts and adjust `HTTP_RETRIES` if needed
-
-**Invalid Series ID**
-- Verify series IDs in the [Datos Argentina explorer](https://datos.gob.ar/series)
-- Update `SERIES_WHITELIST` with valid IDs
-
-**Environment Validation Errors**
-- Check `.env` file format and required variables
-- See `.env.example` for reference
-
-### Logs
+### Available Scripts
 
 ```bash
-# View service logs
-pnpm dev
-
-# View database logs
-docker-compose -f infrastructure/docker-compose.yml logs postgres
-
-# View all container logs
-docker-compose -f infrastructure/docker-compose.yml logs
+npm run dev          # Start development server
+npm run discover     # Map series to BCRA variables
+npm run update       # Daily update
+npm run backfill     # Historical data backfill
+npm run lint         # Run ESLint
+npm run format       # Format code with Prettier
+npm run test         # Run tests
+npm run build        # Build for production
 ```
 
-## 📊 Performance
+## 🚢 Deployment
 
-- **Idempotent Upserts**: Efficient handling of duplicate data
-- **Batch Processing**: Processes data in configurable batches
-- **Connection Pooling**: PostgreSQL connection pool for optimal performance
-- **Retry Logic**: Exponential backoff with jitter for API resilience
-
-## 🔒 Security & Hardening
-
-- **TLS Verification**: Full TLS certificate verification in production
-- **CA Bundle Support**: Optional additional CA certificates for external APIs
-- **Circuit Breaker**: Automatic failover between providers (BCRA → Datos Argentina)
-- **Input Validation**: Zod schema validation for all inputs
-- **SQL Injection Protection**: Parameterized queries
-- **Error Handling**: Secure error messages without sensitive data exposure
-
-### TLS Configuration
-
-The service supports additional CA certificates for external APIs:
+### Docker Deployment
 
 ```bash
-# Set CA bundle path
-export BCRA_CA_BUNDLE_PATH=/app/certs/bcra-chain.pem
+# Build and start all services
+docker-compose up -d
 
-# Extract BCRA certificate chain
-openssl s_client -showcerts -connect api.bcra.gob.ar:443 -servername api.bcra.gob.ar < /dev/null 2>/dev/null | openssl x509 -outform PEM > bcra-chain.pem
+# View logs
+docker-compose logs -f ingestor
+
+# Scale services
+docker-compose up -d --scale ingestor=3
 ```
 
-### Circuit Breaker
+### Production Considerations
 
-Automatic failover configuration:
-- **Primary Provider**: BCRA (configurable)
-- **Fallback Provider**: Datos Argentina
-- **Failure Threshold**: 5 failures in 10 minutes
-- **Cooldown Period**: 15 minutes
-- **Environment Variables**: `BREAKER_FAILURE_THRESHOLD`, `BREAKER_WINDOW_MS`, `BREAKER_OPEN_MS`
+1. **TLS Configuration**: Configure proper CA bundles for production
+2. **Database Backup**: Implement regular backup strategy
+3. **Monitoring**: Set up health checks and alerting
+4. **Scaling**: Configure load balancing for multiple instances
+5. **Security**: Use proper authentication and authorization
+
+### Health Checks
+
+The service provides health check endpoints:
+
+```http
+GET /health
+```
+
+**Response**:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-10-23T22:00:00Z",
+  "database": "connected",
+  "providers": {
+    "BCRA_MONETARIAS": "healthy"
+  }
+}
+```
+
+## 📈 Data Flow
+
+### Daily Update Flow
+
+1. **Scheduler triggers** at 08:05 AM Argentina time
+2. **Check database connectivity**
+3. **Initialize provider chain** (BCRA Monetarias primary)
+4. **For each mapped series**:
+   - Get last stored date
+   - Fetch new data from BCRA API
+   - Perform idempotent upserts
+   - Log results
+5. **Send summary** with statistics
+
+### Backfill Flow
+
+1. **CLI command** with date range parameters
+2. **Validate parameters** and connectivity
+3. **For specified series**:
+   - Fetch historical data with pagination
+   - Normalize data format
+   - Store in database
+   - Handle duplicates with upserts
+4. **Return statistics** and completion status
+
+### Error Handling
+
+- **Retry Logic**: Exponential backoff with jitter
+- **Circuit Breaker**: Automatic failover on repeated failures
+- **Graceful Degradation**: Continue processing other series on individual failures
+- **Comprehensive Logging**: Structured logs for debugging and monitoring
+
+## 🔍 Monitoring & Observability
+
+### Structured Logging
+
+All operations are logged with structured JSON format:
+
+```json
+{
+  "level": "info",
+  "time": "2025-10-23T22:00:00Z",
+  "service": "ingestor",
+  "provider": "BCRA_MONETARIAS",
+  "seriesId": "1",
+  "pointsFetched": 42,
+  "pointsStored": 42,
+  "durationMs": 1500
+}
+```
+
+### Key Metrics
+
+- **Data Points Processed**: Total points fetched and stored
+- **API Response Times**: Latency to external APIs
+- **Error Rates**: Failed requests and retry attempts
+- **Database Performance**: Query execution times
+- **Provider Health**: Availability of external services
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+4. Add tests
+5. Submit a pull request
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
-
-## 🆘 Support
-
-For issues and questions:
-1. Check the troubleshooting section
-2. Review the logs for error details
-3. Create an issue with detailed information
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-**Built with ❤️ for Argentina's data infrastructure**
+**Built with ❤️ for Argentina's economic data community**

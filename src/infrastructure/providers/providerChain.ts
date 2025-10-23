@@ -7,6 +7,7 @@ import type {
 } from '../../domain/providers.js';
 import { logger } from '../log/logger.js';
 import { config } from '../config/index.js';
+import { PROVIDER_CHAIN as events } from '../log/log-events.js';
 
 /**
  * Provider chain for automatic failover between different data sources
@@ -15,7 +16,7 @@ export class ProviderChain implements IProviderChain {
   private readonly providers: Map<string, SeriesProvider>;
   private readonly primaryProvider: string;
   private readonly fallbackProviders: string[];
-  private readonly loggerContext = logger.child({ component: 'ProviderChain' });
+  // Remove loggerContext as it's not available in the new logger
 
   constructor(providers: SeriesProvider[]) {
     this.providers = new Map();
@@ -31,10 +32,14 @@ export class ProviderChain implements IProviderChain {
       .filter(p => p.name !== this.primaryProvider)
       .map(p => p.name);
 
-    this.loggerContext.info('Provider chain initialized', {
-      primaryProvider: this.primaryProvider,
-      fallbackProviders: this.fallbackProviders,
-      availableProviders: Array.from(this.providers.keys()),
+    logger.info({
+      event: events.FETCH_RANGE,
+      msg: 'Provider chain initialized',
+      data: {
+        primaryProvider: this.primaryProvider,
+        fallbackProviders: this.fallbackProviders,
+        availableProviders: Array.from(this.providers.keys()),
+      },
     });
   }
 
@@ -44,11 +49,15 @@ export class ProviderChain implements IProviderChain {
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
     const providersToTry = [this.primaryProvider, ...this.fallbackProviders];
 
-    this.loggerContext.info('Starting data fetch with provider chain', {
-      externalId: params.externalId,
-      from: params.from,
-      to: params.to,
-      providersToTry,
+    logger.info({
+      event: events.FETCH_RANGE,
+      msg: 'Starting data fetch with provider chain',
+      data: {
+        externalId: params.externalId,
+        from: params.from,
+        to: params.to,
+        providersToTry,
+      },
     });
 
     let lastError: Error | null = null;
@@ -57,7 +66,11 @@ export class ProviderChain implements IProviderChain {
       const provider = this.providers.get(providerName);
 
       if (!provider) {
-        this.loggerContext.warn('Provider not found, skipping', { providerName });
+        logger.info({
+          event: events.FETCH_RANGE,
+          msg: 'Provider not found, skipping',
+          data: { providerName },
+        });
         continue;
       }
 
@@ -66,36 +79,52 @@ export class ProviderChain implements IProviderChain {
         const health = await provider.health();
 
         if (!health.isHealthy) {
-          this.loggerContext.warn('Provider is unhealthy, skipping', {
-            providerName,
-            health,
+          logger.info({
+            event: events.FETCH_RANGE,
+            msg: 'Provider is unhealthy, skipping',
+            data: {
+              providerName,
+              health,
+            },
           });
           continue;
         }
 
-        this.loggerContext.info('Attempting to fetch data', {
-          providerName,
-          responseTime: health.responseTime,
+        logger.info({
+          event: events.FETCH_RANGE,
+          msg: 'Attempting to fetch data',
+          data: {
+            providerName,
+            responseTime: health.responseTime,
+          },
         });
 
         // Attempt to fetch data from this provider
         const result = await provider.fetchRange(params);
 
-        this.loggerContext.info('Data fetch successful', {
-          providerName,
-          pointsFetched: result.points.length,
-          totalCount: result.totalCount,
-          hasMore: result.hasMore,
+        logger.info({
+          event: events.FETCH_RANGE,
+          msg: 'Data fetch successful',
+          data: {
+            providerName,
+            pointsFetched: result.points.length,
+            totalCount: result.totalCount,
+            hasMore: result.hasMore,
+          },
         });
 
         return result;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        this.loggerContext.warn('Provider failed, trying next provider', {
-          providerName,
-          error: lastError.message,
-          remainingProviders: providersToTry.slice(providersToTry.indexOf(providerName) + 1),
+        logger.info({
+          event: events.FETCH_RANGE,
+          msg: 'Provider failed, trying next provider',
+          data: {
+            providerName,
+            error: lastError.message,
+            remainingProviders: providersToTry.slice(providersToTry.indexOf(providerName) + 1),
+          },
         });
 
         // Continue to next provider
@@ -104,12 +133,16 @@ export class ProviderChain implements IProviderChain {
     }
 
     // All providers failed
-    this.loggerContext.error('All providers failed to fetch data', {
-      externalId: params.externalId,
-      from: params.from,
-      to: params.to,
-      lastError: lastError?.message,
-      providersTried: providersToTry,
+    logger.error({
+      event: events.FETCH_RANGE,
+      msg: 'All providers failed to fetch data',
+      err: lastError || new Error('All providers failed to fetch data'),
+      data: {
+        externalId: params.externalId,
+        from: params.from,
+        to: params.to,
+        providersTried: providersToTry,
+      },
     });
 
     throw lastError || new Error('All providers failed to fetch data');
@@ -121,7 +154,10 @@ export class ProviderChain implements IProviderChain {
   async getHealthStatus(): Promise<Record<string, ProviderHealth>> {
     const healthStatus: Record<string, ProviderHealth> = {};
 
-    this.loggerContext.debug('Checking health status of all providers');
+    logger.info({
+      event: events.HEALTH,
+      msg: 'Checking health status of all providers',
+    });
 
     // Check health of all providers in parallel
     const healthChecks = Array.from(this.providers.entries()).map(async ([name, provider]) => {
@@ -150,10 +186,14 @@ export class ProviderChain implements IProviderChain {
     ).length;
     const totalProviders = Object.keys(healthStatus).length;
 
-    this.loggerContext.info('Provider health check completed', {
-      healthyProviders,
-      totalProviders,
-      healthStatus,
+    logger.info({
+      event: events.HEALTH,
+      msg: 'Provider health check completed',
+      data: {
+        healthyProviders,
+        totalProviders,
+        healthStatus,
+      },
     });
 
     return healthStatus;

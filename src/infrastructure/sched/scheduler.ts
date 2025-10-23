@@ -1,10 +1,11 @@
 import cron from 'node-cron';
 import { FetchAndStoreSeriesUseCase } from '../../application/usecases/fetchAndStoreSeries.js';
 import { seriesRepository } from '../db/seriesRepo.js';
-import { BcraV3Provider, DatosSeriesProvider, ProviderChain } from '../providers/index.js';
+import { BcraMonetariasProvider, ProviderChain } from '../providers/index.js';
 import { logger } from '../log/logger.js';
 import { config } from '../config/index.js';
 import { db } from '../db/pg.js';
+import { SCHEDULER as events } from '../log/log-events.js';
 
 // Scheduler for automated data updates
 export class Scheduler {
@@ -16,7 +17,10 @@ export class Scheduler {
    */
   start(): void {
     if (this.cronJob) {
-      logger.warn('Scheduler is already running');
+      logger.info({
+        event: events.START,
+        msg: 'Scheduler is already running',
+      });
       return;
     }
 
@@ -37,10 +41,14 @@ export class Scheduler {
     this.cronJob.start();
     this.isRunning = true;
 
-    logger.info('Scheduler started', {
-      timezone: config.app.timezone,
-      schedule: '5 8 * * *',
-      description: 'Daily update at 08:05 AM Argentina time',
+    logger.info({
+      event: events.START,
+      msg: 'Scheduler started',
+      data: {
+        timezone: config.app.timezone,
+        schedule: '5 8 * * *',
+        description: 'Daily update at 08:05 AM Argentina time',
+      },
     });
   }
 
@@ -52,7 +60,10 @@ export class Scheduler {
       this.cronJob.stop();
       this.cronJob = null;
       this.isRunning = false;
-      logger.info('Scheduler stopped');
+      logger.info({
+        event: events.STOP,
+        msg: 'Scheduler stopped',
+      });
     }
   }
 
@@ -61,29 +72,31 @@ export class Scheduler {
    */
   async executeDailyUpdate(): Promise<void> {
     const startTime = Date.now();
-    const loggerContext = logger.child({ operation: 'dailyUpdate' });
+    // Remove logger.child as it's not available in the new logger
 
     try {
-      loggerContext.info('Starting scheduled daily update');
+      logger.info({
+        event: events.EXECUTE_DAILY_UPDATE,
+        msg: 'Starting scheduled daily update',
+      });
 
       // Check database connectivity
       const isConnected = await db.isConnected();
       if (!isConnected) {
-        loggerContext.error('Database connection failed');
+        logger.error({
+          event: events.EXECUTE_DAILY_UPDATE,
+          msg: 'Database connection failed',
+          err: new Error('Database connection failed'),
+        });
         return;
       }
 
-      // Initialize providers and provider chain
-      const bcraProvider = new BcraV3Provider();
-      const datosProvider = new DatosSeriesProvider();
-      const providerChain = new ProviderChain([bcraProvider, datosProvider]);
+      // Initialize BCRA Monetarias provider
+      const bcraMonetariasProvider = new BcraMonetariasProvider();
+      const providerChain = new ProviderChain([bcraMonetariasProvider]);
 
       // Initialize use case
-      const fetchAndStoreUseCase = new FetchAndStoreSeriesUseCase(
-        seriesRepository,
-        providerChain,
-        loggerContext
-      );
+      const fetchAndStoreUseCase = new FetchAndStoreSeriesUseCase(seriesRepository, providerChain);
 
       // Execute update for all whitelisted series
       const results = await fetchAndStoreUseCase.executeMultiple(config.app.seriesWhitelist);
@@ -95,41 +108,56 @@ export class Scheduler {
       const totalDuration = Date.now() - startTime;
 
       // Log summary
-      loggerContext.info('Daily update completed', {
-        seriesProcessed: results.length,
-        successCount,
-        failureCount: results.length - successCount,
-        pointsInserted: totalPointsStored,
-        pointsUpdated: totalPointsFetched - totalPointsStored,
-        durationMs: totalDuration,
-        lastTsPerSeries: results.map(r => ({
-          seriesId: r.seriesId,
-          pointsFetched: r.pointsFetched,
-          pointsStored: r.pointsStored,
-          success: r.success,
-        })),
+      logger.info({
+        event: events.EXECUTE_DAILY_UPDATE,
+        msg: 'Daily update completed',
+        data: {
+          seriesProcessed: results.length,
+          successCount,
+          failureCount: results.length - successCount,
+          pointsInserted: totalPointsStored,
+          pointsUpdated: totalPointsFetched - totalPointsStored,
+          durationMs: totalDuration,
+          lastTsPerSeries: results.map(r => ({
+            seriesId: r.seriesId,
+            pointsFetched: r.pointsFetched,
+            pointsStored: r.pointsStored,
+            success: r.success,
+          })),
+        },
       });
 
       // Log individual results for debugging
       for (const result of results) {
         if (result.success) {
-          loggerContext.debug('Series update successful', {
-            seriesId: result.seriesId,
-            pointsFetched: result.pointsFetched,
-            pointsStored: result.pointsStored,
+          logger.info({
+            event: events.EXECUTE_DAILY_UPDATE,
+            msg: 'Series update successful',
+            data: {
+              seriesId: result.seriesId,
+              pointsFetched: result.pointsFetched,
+              pointsStored: result.pointsStored,
+            },
           });
         } else {
-          loggerContext.error('Series update failed', {
-            seriesId: result.seriesId,
-            error: result.error,
+          logger.error({
+            event: events.EXECUTE_DAILY_UPDATE,
+            msg: 'Series update failed',
+            err: new Error(result.error || 'Unknown error'),
+            data: {
+              seriesId: result.seriesId,
+            },
           });
         }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      loggerContext.error('Daily update failed', {
-        error: errorMessage,
-        duration: Date.now() - startTime,
+      logger.error({
+        event: events.EXECUTE_DAILY_UPDATE,
+        msg: 'Daily update failed',
+        err: error as Error,
+        data: {
+          duration: Date.now() - startTime,
+        },
       });
     }
   }
@@ -155,7 +183,22 @@ export class Scheduler {
    * Execute a manual update for testing
    */
   async executeManualUpdate(): Promise<void> {
-    logger.info('Executing manual update');
+    logger.info({
+      event: events.EXECUTE_MANUAL_UPDATE,
+      msg: 'Executing manual update',
+    });
+    await this.executeDailyUpdate();
+  }
+
+  /**
+   * Start scheduler and execute immediate update
+   */
+  async startWithImmediateUpdate(): Promise<void> {
+    this.start();
+    logger.info({
+      event: events.START_WITH_IMMEDIATE_UPDATE,
+      msg: 'Executing immediate update after scheduler start',
+    });
     await this.executeDailyUpdate();
   }
 }

@@ -1,6 +1,8 @@
-import type { ISeriesRepository, ILogger } from '../../domain/ports/index.js';
+import type { ISeriesRepository } from '../../domain/ports/index.js';
 import type { SeriesPoint } from '../../domain/entities/index.js';
 import type { ProviderChain } from '../../domain/providers.js';
+import { logger } from '../../infrastructure/log/logger.js';
+import { BACKFILL_SERIES_USE_CASE as events } from '../../infrastructure/log/log-events.js';
 
 /**
  * Result of backfill operation
@@ -29,11 +31,8 @@ export interface BackfillParams {
 export class BackfillSeriesUseCase {
   constructor(
     private readonly seriesRepository: ISeriesRepository,
-    private readonly providerChain: ProviderChain,
-    private readonly logger: ILogger
-  ) {
-    this.logger = logger.child({ useCase: 'BackfillSeries' });
-  }
+    private readonly providerChain: ProviderChain
+  ) {}
 
   /**
    * Execute backfill for a series
@@ -41,16 +40,24 @@ export class BackfillSeriesUseCase {
   async execute(params: BackfillParams): Promise<BackfillResult> {
     const { seriesId, fromDate, toDate } = params;
 
-    this.logger.info('Starting backfill for series', { seriesId, fromDate, toDate });
+    logger.info({
+      event: events.EXECUTE,
+      msg: 'Starting backfill for series',
+      data: { seriesId, fromDate, toDate },
+    });
 
     try {
       const points = await this.fetchHistoricalData(seriesId, fromDate, toDate);
       const storedCount = await this.storeData(points);
 
-      this.logger.info('Backfill completed', {
-        seriesId,
-        pointsFetched: points.length,
-        pointsStored: storedCount,
+      logger.info({
+        event: events.EXECUTE,
+        msg: 'Backfill completed',
+        data: {
+          seriesId,
+          pointsFetched: points.length,
+          pointsStored: storedCount,
+        },
       });
 
       return {
@@ -61,7 +68,12 @@ export class BackfillSeriesUseCase {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error('Backfill failed', { seriesId, error: errorMessage });
+      logger.error({
+        event: events.EXECUTE,
+        msg: 'Backfill failed',
+        err: error as Error,
+        data: { seriesId },
+      });
 
       return {
         success: false,

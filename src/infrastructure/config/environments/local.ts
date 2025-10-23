@@ -24,13 +24,13 @@ export const localConfig: EnvironmentConfig = {
     },
   },
   database: {
-    url: 'postgresql://user:pass@localhost:5432/ingestor',
+    url: 'postgresql://user:pass@localhost:5433/ingestor',
   },
   app: {
     timezone: 'America/Argentina/Buenos_Aires',
     logLevel: 'info',
     pageSize: 1000,
-    seriesWhitelist: ['143.3_NO_PR_2004_A_21:IPC', '143.3_NO_PR_2004_A_21:IPC_2024'],
+    seriesWhitelist: ['1', '15'], // BCRA IDs: 1=Reservas Internacionales, 15=Base Monetaria
     http: {
       timeout: parseInt(process.env.HTTP_TIMEOUT_MS || '30000'),
       retries: parseInt(process.env.HTTP_RETRIES || '3'),
@@ -44,7 +44,7 @@ export const localConfig: EnvironmentConfig = {
       openMs: parseInt(process.env.BREAKER_OPEN_MS || '900000'),
     },
     providers: {
-      primary: process.env.PRIMARY_PROVIDER || 'BCRA_V3',
+      primary: process.env.PRIMARY_PROVIDER || 'BCRA_MONETARIAS',
       fallback: process.env.FALLBACK_PROVIDER || 'DATOS_SERIES',
       healthTtlMs: parseInt(process.env.PROVIDER_HEALTH_TTL_MS || '60000'),
     },

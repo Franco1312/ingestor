@@ -32,4 +32,14 @@ export interface ISeriesRepository {
    * Delete points in a date range
    */
   deletePointsInRange(seriesId: string, startDate: string, endDate: string): Promise<number>;
+
+  /**
+   * Get all series from catalog
+   */
+  getAllSeries(): Promise<SeriesMetadata[]>;
+
+  /**
+   * Update series metadata
+   */
+  updateSeriesMetadata(seriesId: string, metadata: Record<string, unknown>): Promise<void>;
 }

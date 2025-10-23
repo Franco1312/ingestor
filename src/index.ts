@@ -10,17 +10,21 @@ import { config } from './infrastructure/config/index.js';
  */
 
 async function main(): Promise<void> {
-  const loggerContext = logger.child({ service: 'ingestor' });
+  // Remove loggerContext as it's not available in the new logger
 
   try {
-    loggerContext.info('Starting ingestor service', {
-      timezone: config.app.timezone,
-      logLevel: config.app.logLevel,
-      seriesWhitelist: config.app.seriesWhitelist,
-      primaryProvider: config.app.providers.primary,
-      fallbackProvider: config.app.providers.fallback,
-      httpTimeout: config.app.http.timeout,
-      circuitBreakerThreshold: config.app.circuitBreaker.failureThreshold,
+    logger.info({
+      event: 'MAIN.START',
+      msg: 'Starting ingestor service',
+      data: {
+        timezone: config.app.timezone,
+        logLevel: config.app.logLevel,
+        seriesWhitelist: config.app.seriesWhitelist,
+        primaryProvider: config.app.providers.primary,
+        fallbackProvider: config.app.providers.fallback,
+        httpTimeout: config.app.http.timeout,
+        circuitBreakerThreshold: config.app.circuitBreaker.failureThreshold,
+      },
     });
 
     // Start the scheduler
@@ -28,29 +32,45 @@ async function main(): Promise<void> {
 
     // Log scheduler status
     const status = scheduler.getStatus();
-    loggerContext.info('Scheduler status', status);
+    logger.info({
+      event: 'MAIN.SCHEDULER_STATUS',
+      msg: 'Scheduler status',
+      data: status,
+    });
 
     // Handle graceful shutdown
     process.on('SIGINT', async () => {
-      loggerContext.info('Received SIGINT, shutting down gracefully');
+      logger.info({
+        event: 'MAIN.SHUTDOWN',
+        msg: 'Received SIGINT, shutting down gracefully',
+      });
       scheduler.stop();
       process.exit(0);
     });
 
     process.on('SIGTERM', async () => {
-      loggerContext.info('Received SIGTERM, shutting down gracefully');
+      logger.info({
+        event: 'MAIN.SHUTDOWN',
+        msg: 'Received SIGTERM, shutting down gracefully',
+      });
       scheduler.stop();
       process.exit(0);
     });
 
     // Keep the process running
-    loggerContext.info('Ingestor service is running. Press Ctrl+C to stop.');
+    logger.info({
+      event: 'MAIN.RUNNING',
+      msg: 'Ingestor service is running. Press Ctrl+C to stop.',
+    });
 
     // Run forever
     await new Promise(() => {});
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    loggerContext.error('Failed to start ingestor service', { error: errorMessage });
+    logger.error({
+      event: 'MAIN.ERROR',
+      msg: 'Failed to start ingestor service',
+      err: error as Error,
+    });
     process.exit(1);
   }
 }

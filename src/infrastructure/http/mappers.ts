@@ -1,6 +1,7 @@
 import type { SeriesPoint } from '../../domain/entities/index.js';
 import { validateSeriesPoint } from '../../domain/entities/index.js';
 import { logger } from '../log/logger.js';
+import { DATA_MAPPERS as events } from '../log/log-events.js';
 
 /**
  * Maps raw API response data to normalized SeriesPoint entities
@@ -62,11 +63,15 @@ export class DataMappers {
 
     // Log invalid points for debugging
     if (invalidPoints.length > 0) {
-      logger.warn('Invalid data points encountered', {
-        seriesId,
-        invalidCount: invalidPoints.length,
-        totalCount: rawData.length,
-        invalidPoints: invalidPoints.slice(0, 10), // Log first 10 invalid points
+      logger.info({
+        event: events.MAP_BCRA_RESPONSE_TO_SERIES_POINTS,
+        msg: 'Invalid data points encountered',
+        data: {
+          seriesId,
+          invalidCount: invalidPoints.length,
+          totalCount: rawData.length,
+          invalidPoints: invalidPoints.slice(0, 10),
+        },
       });
     }
 

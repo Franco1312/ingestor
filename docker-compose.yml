@@ -9,10 +9,10 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./infrastructure/db/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U user -d ingestor']
       interval: 10s
@@ -28,8 +28,8 @@ services:
       HTTP_TIMEOUT_MS: 20000
       HTTP_RETRIES: 3
       BREAKER_FAILURE_THRESHOLD: 5
-      PRIMARY_PROVIDER: bcra
-      FALLBACK_PROVIDER: datos
+      PRIMARY_PROVIDER: BCRA_V3
+      FALLBACK_PROVIDER: DATOS_SERIES
       LOG_LEVEL: info
     ports:
       - '3000:3000'

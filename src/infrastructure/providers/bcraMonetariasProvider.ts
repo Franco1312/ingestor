@@ -6,26 +6,19 @@ import type {
 } from '../../domain/providers.js';
 import type { SeriesPoint } from '../../domain/entities/index.js';
 import { BcraClient } from '../http/clients/bcraClient.js';
-import { config } from '../config/index.js';
+// Remove unused import
 import { logger } from '../log/logger.js';
+import { BCRA_MONETARIAS_PROVIDER as events } from '../log/log-events.js';
 
-/**
- * BCRA v3 API Provider
- * Simple provider for BCRA Monetarias API
- */
-export class BcraV3Provider implements SeriesProvider {
-  readonly name = 'BCRA_V3';
+export class BcraMonetariasProvider implements SeriesProvider {
+  readonly name = 'BCRA_MONETARIAS';
 
   private readonly bcraClient: BcraClient;
-  // Remove loggerContext as it's not available in the new logger
 
   constructor() {
     this.bcraClient = new BcraClient();
   }
 
-  /**
-   * Health check for BCRA API
-   */
   async health(): Promise<ProviderHealth> {
     const startTime = Date.now();
 
@@ -48,48 +41,79 @@ export class BcraV3Provider implements SeriesProvider {
     }
   }
 
-  /**
-   * Fetch series data from BCRA
-   */
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
-    const { externalId, from, to, limit = config.app.pageSize, offset = 0 } = params;
+    const { externalId, from, to, limit = 1000, offset = 0 } = params;
 
     logger.info({
-      event: 'BCRA_V3_PROVIDER.FETCH_RANGE',
-      msg: 'Fetching BCRA data',
-      data: { externalId, from, to },
-    });
-
-    try {
-      const response = await this.bcraClient.getSeriesData({
-        seriesId: externalId,
+      event: events.FETCH_RANGE,
+      msg: 'Starting BCRA Monetarias data fetch',
+      data: {
+        externalId,
         from,
         to,
         limit,
         offset,
-      });
+      },
+    });
 
-      const points = this.normalizeResponse(response, externalId);
+    try {
+      const allPoints: SeriesPoint[] = [];
+      let currentOffset = offset;
+      let hasMore = true;
+      let totalCount = 0;
+
+      // Implement pagination
+      while (hasMore) {
+        const responseBody = await this.bcraClient.getSeriesData({
+          seriesId: externalId,
+          from,
+          to,
+          limit,
+          offset: currentOffset,
+        });
+
+        const pagePoints = this.normalizeResponse(responseBody, externalId);
+        allPoints.push(...pagePoints);
+
+        // Check if we have more pages
+        hasMore = pagePoints.length === limit;
+        currentOffset += limit;
+        totalCount += pagePoints.length;
+
+        logger.info({
+          event: events.FETCH_RANGE,
+          msg: 'Fetched page',
+          data: {
+            externalId,
+            pageOffset: currentOffset - limit,
+            pagePointsCount: pagePoints.length,
+            totalPointsSoFar: allPoints.length,
+            hasMore,
+          },
+        });
+      }
 
       logger.info({
-        event: 'BCRA_V3_PROVIDER.FETCH_RANGE',
-        msg: 'BCRA data fetched',
+        event: events.FETCH_RANGE,
+        msg: 'BCRA Monetarias data fetch completed',
         data: {
           externalId,
-          pointsFetched: points.length,
+          totalPointsFetched: allPoints.length,
+          pagesFetched: Math.ceil(totalCount / limit),
+          dateRange: { from, to },
         },
       });
 
       return {
-        points,
-        totalCount: points.length,
-        hasMore: points.length === limit,
+        points: allPoints,
+        totalCount: allPoints.length,
+        hasMore: false,
         provider: this.name,
       };
     } catch (error) {
       logger.error({
-        event: 'BCRA_V3_PROVIDER.FETCH_RANGE',
-        msg: 'BCRA data fetch failed',
+        event: events.FETCH_RANGE,
+        msg: 'BCRA Monetarias data fetch failed',
         err: error as Error,
         data: { externalId },
       });
@@ -97,16 +121,8 @@ export class BcraV3Provider implements SeriesProvider {
     }
   }
 
-  /**
-   * Get available series from BCRA
-   */
   async getAvailableSeries(): Promise<
-    Array<{
-      id: string;
-      title: string;
-      description?: string;
-      frequency?: string;
-    }>
+    Array<{ id: string; title: string; description?: string; frequency?: string }>
   > {
     try {
       const data = await this.bcraClient.getAvailableSeries();
@@ -118,37 +134,29 @@ export class BcraV3Provider implements SeriesProvider {
           description?: string;
           frequency?: string;
         } = {
-          id: (seriesItem.idSerie as string) || (seriesItem.id as string) || 'unknown',
-          title: (seriesItem.nombre as string) || (seriesItem.title as string) || 'Unknown',
+          id: String(seriesItem.idVariable || 'unknown'),
+          title: (seriesItem.descripcion as string) || 'Unknown',
         };
 
-        if (seriesItem.descripcion || seriesItem.description) {
-          result.description =
-            (seriesItem.descripcion as string) || (seriesItem.description as string);
-        }
-        if (seriesItem.frecuencia) {
-          result.frequency = seriesItem.frecuencia as string;
+        if (seriesItem.categoria) {
+          result.description = seriesItem.categoria as string;
         }
 
         return result;
       });
     } catch (error) {
       logger.error({
-        event: 'BCRA_V3_PROVIDER.GET_AVAILABLE_SERIES',
-        msg: 'Failed to get available BCRA series',
+        event: events.GET_AVAILABLE_SERIES,
+        msg: 'Failed to get available BCRA Monetarias series',
         err: error as Error,
       });
       throw error;
     }
   }
 
-  /**
-   * Normalize BCRA API response to our standard format
-   */
   private normalizeResponse(response: unknown, seriesId: string): SeriesPoint[] {
     const points: SeriesPoint[] = [];
 
-    // BCRA API returns data in response.results array
     const responseData = response as Record<string, unknown>;
     if (responseData && responseData.results) {
       const results = responseData.results as unknown[];
@@ -165,9 +173,6 @@ export class BcraV3Provider implements SeriesProvider {
     return points;
   }
 
-  /**
-   * Parse date string to YYYY-MM-DD format
-   */
   private parseDate(dateString: string | undefined | null): string | null | undefined {
     if (!dateString) return null;
 
@@ -177,9 +182,6 @@ export class BcraV3Provider implements SeriesProvider {
     return date.toISOString().split('T')[0];
   }
 
-  /**
-   * Parse numeric value
-   */
   private parseValue(value: unknown): number | null {
     if (value === null || value === undefined || value === '') return null;
 

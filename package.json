@@ -8,6 +8,7 @@
     "dev": "tsx src/index.ts",
     "update": "tsx src/interfaces/cli/update.ts",
     "backfill": "tsx src/interfaces/cli/backfill.ts",
+    "discover": "tsx src/interfaces/cli/discover.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,js,json}\" \"*.{ts,js,json,cjs,yml,yaml}\" \"eslint.config.js\" \"prettier.config.cjs\"",
