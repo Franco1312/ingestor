@@ -16,8 +16,9 @@
     "prepare": "husky install",
     "pre-commit": "lint-staged",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "build": "tsup src/index.ts --format cjs --dts",
     "clean": "rm -rf dist"
   },
@@ -44,21 +45,22 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.11.5",
     "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.10.9",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
-    "@vitest/coverage-v8": "^1.2.0",
     "dotenv": "^16.4.5",
     "eslint": "^8.56.0",
     "husky": "^9.1.7",
+    "jest": "^30.2.0",
     "lint-staged": "^16.2.6",
     "prettier": "^3.2.4",
+    "ts-jest": "^29.4.5",
     "tsup": "^8.0.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
-    "vitest": "^1.2.0"
+    "typescript": "^5.3.3"
   },
   "lint-staged": {
     "*.{ts,js}": [

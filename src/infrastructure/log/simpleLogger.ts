@@ -5,7 +5,7 @@
 
 export interface Logger {
   info(params: { event: string; msg: string; data?: unknown }): void;
-  error(params: { event: string; msg: string; err: Error; data?: unknown }): void;
+  error(params: { event: string; msg: string; err?: Error | string; data?: unknown }): void;
 }
 
 export class PinoLogger implements Logger {
@@ -26,16 +26,22 @@ export class PinoLogger implements Logger {
     });
   }
 
-  error(params: { event: string; msg: string; err: Error; data?: unknown }): void {
+  error(params: { event: string; msg: string; err?: Error | string; data?: unknown }): void {
+    const errorData = params.err
+      ? typeof params.err === 'string'
+        ? { message: params.err }
+        : {
+            message: params.err.message,
+            stack: params.err.stack,
+            name: params.err.name,
+          }
+      : undefined;
+
     this.pino.error({
       event: params.event,
       msg: params.msg,
       data: params.data,
-      err: {
-        message: params.err.message,
-        stack: params.err.stack,
-        name: params.err.name,
-      },
+      ...(errorData && { err: errorData }),
     });
   }
 }

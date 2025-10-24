@@ -4,9 +4,6 @@ import type { ProviderChain } from '../../domain/providers.js';
 import { logger } from '../../infrastructure/log/logger.js';
 import { BACKFILL_SERIES_USE_CASE as events } from '../../infrastructure/log/log-events.js';
 
-/**
- * Result of backfill operation
- */
 export interface BackfillResult {
   success: boolean;
   seriesId: string;
@@ -15,35 +12,24 @@ export interface BackfillResult {
   error?: string;
 }
 
-/**
- * Parameters for backfill operation
- */
 export interface BackfillParams {
   seriesId: string;
   fromDate: string;
   toDate?: string;
 }
 
-/**
- * Backfill series data use case
- * Handles fetching historical data from providers and storing it in the repository
- */
 export class BackfillSeriesUseCase {
   constructor(
     private readonly seriesRepository: ISeriesRepository,
     private readonly providerChain: ProviderChain
   ) {}
 
-  /**
-   * Execute backfill for a series
-   */
   async execute(params: BackfillParams): Promise<BackfillResult> {
     const { seriesId, fromDate, toDate } = params;
 
     logger.info({
       event: events.EXECUTE,
-      msg: 'Starting backfill for series',
-      data: { seriesId, fromDate, toDate },
+      msg: 'Starting backfill operation',
     });
 
     try {
@@ -52,12 +38,7 @@ export class BackfillSeriesUseCase {
 
       logger.info({
         event: events.EXECUTE,
-        msg: 'Backfill completed',
-        data: {
-          seriesId,
-          pointsFetched: points.length,
-          pointsStored: storedCount,
-        },
+        msg: 'Backfill completed successfully',
       });
 
       return {
@@ -71,8 +52,7 @@ export class BackfillSeriesUseCase {
       logger.error({
         event: events.EXECUTE,
         msg: 'Backfill failed',
-        err: error as Error,
-        data: { seriesId },
+        err: errorMessage,
       });
 
       return {
@@ -85,9 +65,6 @@ export class BackfillSeriesUseCase {
     }
   }
 
-  /**
-   * Get backfill statistics for a series
-   */
   async getBackfillStats(seriesId: string): Promise<{
     totalPoints: number;
     firstDate: string | null;
@@ -96,9 +73,6 @@ export class BackfillSeriesUseCase {
     return await this.seriesRepository.getSeriesStats(seriesId);
   }
 
-  /**
-   * Fetch historical data from the provider chain
-   */
   private async fetchHistoricalData(
     seriesId: string,
     fromDate: string,
@@ -113,9 +87,6 @@ export class BackfillSeriesUseCase {
     return result.points;
   }
 
-  /**
-   * Store data in the repository
-   */
   private async storeData(points: SeriesPoint[]): Promise<number> {
     if (points.length === 0) {
       return 0;

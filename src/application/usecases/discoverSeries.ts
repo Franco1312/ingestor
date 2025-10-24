@@ -11,16 +11,15 @@ interface BcraVariable {
   valor: number;
 }
 
-// Mapping criteria for series discovery
 const SERIES_MAPPING = [
   {
     keywords: ['reservas internacionales', 'reservas', 'international reserves'],
-    seriesId: '1', // Our series ID for reserves
+    seriesId: '1',
     description: 'Reservas Internacionales del BCRA (en millones de dólares)',
   },
   {
     keywords: ['base monetaria', 'monetary base', 'base monetaria - total'],
-    seriesId: '15', // Our series ID for monetary base
+    seriesId: '15',
     description: 'Base monetaria - Total (en millones de pesos)',
   },
 ];
@@ -39,131 +38,98 @@ export interface DiscoveryResult {
 }
 
 export class DiscoverSeriesUseCase {
-  private readonly seriesRepository: ISeriesRepository;
-  private readonly bcraClient: BcraClient;
-
-  constructor(seriesRepository: ISeriesRepository) {
-    this.seriesRepository = seriesRepository;
-    this.bcraClient = new BcraClient();
-  }
+  constructor(
+    private readonly seriesRepository: ISeriesRepository,
+    private readonly bcraClient = new BcraClient()
+  ) {}
 
   async execute(): Promise<DiscoveryResult> {
     logger.info({
       event: events.EXECUTE,
-      msg: 'Starting BCRA Monetarias discovery',
+      msg: 'Starting discovery operation',
     });
 
     try {
-      // Fetch all available variables from BCRA
-      const bcraVariables = await this.bcraClient.getAvailableSeries();
+      const bcraVariables = (await this.bcraClient.getAvailableSeries()) as BcraVariable[];
+      const { mappedSeries, unmappedSeries } = await this.processMappings(bcraVariables);
+      const additionalUnmapped = await this.checkUnmappedSeries();
+
       logger.info({
         event: events.EXECUTE,
-        msg: 'BCRA variables fetched',
-        data: { count: bcraVariables.length },
+        msg: 'Discovery completed successfully',
       });
 
-      const mappedSeries = [];
-      const unmappedSeries = [];
+      return {
+        mappedSeries,
+        unmappedSeries: [...unmappedSeries, ...additionalUnmapped],
+      };
+    } catch (error) {
+      logger.error({
+        event: events.EXECUTE,
+        msg: 'Discovery failed',
+        err: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
 
-      // Process each mapping criteria
-      for (const mapping of SERIES_MAPPING) {
-        logger.info({
-          event: events.EXECUTE,
-          msg: 'Processing mapping criteria',
-          data: {
-            seriesId: mapping.seriesId,
-            keywords: mapping.keywords,
-          },
-        });
-
-        // Find matching BCRA variable
+  private async processMappings(bcraVariables: BcraVariable[]): Promise<{
+    mappedSeries: Array<{ seriesId: string; bcraIdVariable: number; description: string }>;
+    unmappedSeries: Array<{ seriesId: string; source: string; reason: string }>;
+  }> {
+    const results = await Promise.all(
+      SERIES_MAPPING.map(async mapping => {
         const matchingVariable = this.findMatchingVariable(bcraVariables, mapping.keywords);
 
         if (matchingVariable) {
-          logger.info({
-            event: events.FIND_MATCHING_VARIABLE,
-            msg: 'Found matching BCRA variable',
-            data: {
-              seriesId: mapping.seriesId,
-              bcraIdVariable: matchingVariable.idVariable,
-              description: matchingVariable.descripcion,
-            },
-          });
-
-          // Update series metadata with bcra_idVariable
           await this.updateSeriesMetadata(
             mapping.seriesId,
             matchingVariable.idVariable,
             mapping.description
           );
 
-          mappedSeries.push({
-            seriesId: mapping.seriesId,
-            bcraIdVariable: matchingVariable.idVariable,
-            description: mapping.description,
-          });
-
-          logger.info({
-            event: events.UPDATE_SERIES_METADATA,
-            msg: 'Successfully mapped series',
-            data: {
+          return {
+            mapped: {
               seriesId: mapping.seriesId,
               bcraIdVariable: matchingVariable.idVariable,
+              description: mapping.description,
             },
-          });
-        } else {
-          logger.info({
-            event: events.FIND_MATCHING_VARIABLE,
-            msg: 'No matching BCRA variable found',
-            data: {
-              seriesId: mapping.seriesId,
-              keywords: mapping.keywords,
-            },
-          });
+            unmapped: null,
+          };
+        }
 
-          unmappedSeries.push({
+        return {
+          mapped: null,
+          unmapped: {
             seriesId: mapping.seriesId,
             source: 'bcra',
             reason: 'No BCRA mapping found',
-          });
-        }
-      }
+          },
+        };
+      })
+    );
 
-      // Check for series without BCRA mapping
-      const additionalUnmapped = await this.checkUnmappedSeries();
-      unmappedSeries.push(...additionalUnmapped);
-
-      logger.info({
-        event: events.EXECUTE,
-        msg: 'BCRA Monetarias discovery completed successfully',
-      });
-
-      return {
-        mappedSeries,
-        unmappedSeries,
-      };
-    } catch (error) {
-      logger.error({
-        event: events.EXECUTE,
-        msg: 'Discovery failed',
-        err: error as Error,
-      });
-      throw error;
-    }
+    return {
+      mappedSeries: results
+        .map(r => r.mapped)
+        .filter(
+          (item): item is { seriesId: string; bcraIdVariable: number; description: string } =>
+            item !== null
+        ),
+      unmappedSeries: results
+        .map(r => r.unmapped)
+        .filter(
+          (item): item is { seriesId: string; source: string; reason: string } => item !== null
+        ),
+    };
   }
 
-  private findMatchingVariable(variables: unknown[], keywords: string[]): BcraVariable | null {
-    for (const variable of variables) {
-      const varData = variable as BcraVariable;
-      const description = varData.descripcion.toLowerCase();
-
-      for (const keyword of keywords) {
-        if (description.includes(keyword.toLowerCase())) {
-          return varData;
-        }
-      }
-    }
-    return null;
+  private findMatchingVariable(variables: BcraVariable[], keywords: string[]): BcraVariable | null {
+    return (
+      variables.find(variable =>
+        keywords.some(keyword => variable.descripcion.toLowerCase().includes(keyword.toLowerCase()))
+      ) || null
+    );
   }
 
   private async updateSeriesMetadata(
@@ -171,123 +137,33 @@ export class DiscoverSeriesUseCase {
     bcraIdVariable: number,
     description: string
   ): Promise<void> {
-    try {
-      // Get current series metadata
-      const seriesMetadata = await this.seriesRepository.getSeriesMetadata(seriesId);
+    const seriesMetadata = await this.seriesRepository.getSeriesMetadata(seriesId);
+    if (!seriesMetadata) return;
 
-      if (!seriesMetadata) {
-        logger.info({
-          event: events.UPDATE_SERIES_METADATA,
-          msg: 'Series not found in catalog',
-          data: { seriesId },
-        });
-        return;
-      }
+    const updatedMetadata = {
+      ...seriesMetadata.metadata,
+      bcra_idVariable: bcraIdVariable,
+      bcra_description: description,
+      last_discovered: new Date().toISOString(),
+    };
 
-      // Update metadata with BCRA information
-      const updatedMetadata = {
-        ...seriesMetadata.metadata,
-        bcra_idVariable: bcraIdVariable,
-        bcra_description: description,
-        last_discovered: new Date().toISOString(),
-      };
-
-      // Update series in database using repository
-      await this.seriesRepository.updateSeriesMetadata(seriesId, updatedMetadata);
-
-      logger.info({
-        event: events.UPDATE_SERIES_METADATA,
-        msg: 'Series metadata updated',
-        data: {
-          seriesId,
-          bcraIdVariable,
-          description,
-        },
-      });
-    } catch (error) {
-      logger.error({
-        event: events.UPDATE_SERIES_METADATA,
-        msg: 'Failed to update series metadata',
-        err: error as Error,
-        data: {
-          seriesId,
-          bcraIdVariable,
-        },
-      });
-      throw error;
-    }
+    await this.seriesRepository.updateSeriesMetadata(seriesId, updatedMetadata);
   }
 
   private async checkUnmappedSeries(): Promise<
     Array<{ seriesId: string; source: string; reason: string }>
   > {
-    try {
-      // Get all series from catalog using repository
-      const allSeries = await this.seriesRepository.getAllSeries();
+    const allSeries = await this.seriesRepository.getAllSeries();
 
-      const unmappedSeries = [];
-
-      for (const series of allSeries) {
-        const metadata = series.metadata || {};
-
-        if (!metadata.bcra_idVariable) {
-          const reason =
-            series.source === 'indec'
-              ? 'INDEC series not available in BCRA Monetarias'
-              : 'No BCRA mapping found';
-
-          unmappedSeries.push({
-            seriesId: series.id,
-            source: series.source,
-            reason,
-          });
-
-          if (reason.includes('INDEC')) {
-            logger.info({
-              event: events.CHECK_UNMAPPED_SERIES,
-              msg: 'Skipping INDEC series - not available in BCRA Monetarias',
-              data: {
-                seriesId: series.id,
-                source: series.source,
-              },
-            });
-          } else {
-            logger.info({
-              event: events.CHECK_UNMAPPED_SERIES,
-              msg: 'Series without BCRA mapping',
-              data: {
-                seriesId: series.id,
-                source: series.source,
-              },
-            });
-          }
-        }
-      }
-
-      if (unmappedSeries.length > 0) {
-        logger.info({
-          event: events.CHECK_UNMAPPED_SERIES,
-          msg: 'Series without BCRA mapping',
-          data: {
-            count: unmappedSeries.length,
-            unmapped: unmappedSeries,
-          },
-        });
-      } else {
-        logger.info({
-          event: events.CHECK_UNMAPPED_SERIES,
-          msg: 'All catalog series have BCRA mappings',
-        });
-      }
-
-      return unmappedSeries;
-    } catch (error) {
-      logger.error({
-        event: events.CHECK_UNMAPPED_SERIES,
-        msg: 'Failed to check unmapped series',
-        err: error as Error,
-      });
-      throw error;
-    }
+    return allSeries
+      .filter(series => !series.metadata?.bcra_idVariable)
+      .map(series => ({
+        seriesId: series.id,
+        source: series.source,
+        reason:
+          series.source === 'indec'
+            ? 'INDEC series not available in BCRA Monetarias'
+            : 'No BCRA mapping found',
+      }));
   }
 }

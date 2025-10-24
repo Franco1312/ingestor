@@ -6,68 +6,65 @@ import { seriesRepository } from '../../infrastructure/db/seriesRepo.js';
 import { logger } from '../../infrastructure/log/logger.js';
 import { CLI as events } from '../../infrastructure/log/log-events.js';
 
+interface DiscoveryResult {
+  mappedSeries: Array<{
+    seriesId: string;
+    description: string;
+    bcraIdVariable: number;
+  }>;
+  unmappedSeries: Array<{
+    seriesId: string;
+    source: string;
+    reason: string;
+  }>;
+}
+
+class DiscoverCLI {
+  private discoverUseCase: DiscoverSeriesUseCase;
+
+  constructor() {
+    this.discoverUseCase = new DiscoverSeriesUseCase(seriesRepository);
+  }
+
+  private async executeDiscovery(): Promise<DiscoveryResult> {
+    return await this.discoverUseCase.execute();
+  }
+
+  private logDiscoveryResults(result: DiscoveryResult): void {
+    logger.info({
+      event: events.DISCOVER,
+      msg: 'Discovery completed',
+      data: {
+        mapped: result.mappedSeries.length,
+        unmapped: result.unmappedSeries.length,
+      },
+    });
+  }
+
+  async run(): Promise<void> {
+    try {
+      const result = await this.executeDiscovery();
+      this.logDiscoveryResults(result);
+      process.exit(0);
+    } catch (error) {
+      logger.error({
+        event: events.DISCOVER,
+        msg: 'Discovery failed',
+        err: error instanceof Error ? error.message : String(error),
+      });
+      process.exit(1);
+    }
+  }
+}
+
 const program = new Command();
 
 program
   .name('discover')
   .description('Discovers and maps BCRA Monetarias series to the local catalog')
   .action(async () => {
-    logger.info({
-      event: events.DISCOVER,
-      msg: 'Starting BCRA Monetarias discovery',
-    });
-
-    try {
-      // Initialize use case with repository
-      const discoverUseCase = new DiscoverSeriesUseCase(seriesRepository);
-
-      // Execute discovery
-      logger.info({
-        event: events.DISCOVER,
-        msg: 'Executing discovery use case',
-      });
-      const result = await discoverUseCase.execute();
-
-      // Display results
-      console.log('\n🔍 Discovery Results:');
-      console.log('=====================');
-
-      if (result.mappedSeries.length > 0) {
-        console.log('\n✅ Successfully Mapped Series:');
-        result.mappedSeries.forEach(series => {
-          console.log(`   ${series.seriesId}: ${series.description}`);
-          console.log(`   └─ BCRA Variable ID: ${series.bcraIdVariable}`);
-        });
-      }
-
-      if (result.unmappedSeries.length > 0) {
-        console.log('\n⚠️  Unmapped Series:');
-        result.unmappedSeries.forEach(series => {
-          console.log(`   ${series.seriesId} (${series.source}): ${series.reason}`);
-        });
-      }
-
-      console.log('\n📊 Summary:');
-      console.log(`   Total mapped: ${result.mappedSeries.length}`);
-      console.log(`   Total unmapped: ${result.unmappedSeries.length}`);
-
-      logger.info({
-        event: events.DISCOVER,
-        msg: 'Discovery completed successfully',
-        data: {
-          mappedCount: result.mappedSeries.length,
-          unmappedCount: result.unmappedSeries.length,
-        },
-      });
-    } catch (error) {
-      logger.error({
-        event: events.DISCOVER,
-        msg: 'Discovery command failed',
-        err: error as Error,
-      });
-      // Error already logged above with structured logger
-      process.exit(1);
-    }
+    const discoverCLI = new DiscoverCLI();
+    await discoverCLI.run();
   });
 
 program.parse(process.argv);

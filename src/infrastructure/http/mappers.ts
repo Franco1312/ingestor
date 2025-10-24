@@ -2,6 +2,7 @@ import type { SeriesPoint } from '../../domain/entities/index.js';
 import { validateSeriesPoint } from '../../domain/entities/index.js';
 import { logger } from '../log/logger.js';
 import { DATA_MAPPERS as events } from '../log/log-events.js';
+import { DateService } from '../../domain/utils/dateService.js';
 
 /**
  * Maps raw API response data to normalized SeriesPoint entities
@@ -34,12 +35,13 @@ export class DataMappers {
           continue;
         }
 
-        // Validate date format
-        if (!this.isValidDateFormat(rawPoint.date)) {
+        // Validate date format using DateService
+        const dateValidation = DateService.validateDateFormat(rawPoint.date);
+        if (!dateValidation.isValid) {
           invalidPoints.push({
             date: rawPoint.date,
             value: rawPoint.value,
-            reason: 'Invalid date format',
+            reason: dateValidation.error || 'Invalid date format',
           });
           continue;
         }
@@ -101,28 +103,6 @@ export class DataMappers {
     }
 
     return null;
-  }
-
-  /**
-   * Validates date format (YYYY-MM-DD)
-   * @param dateStr - Date string to validate
-   * @returns True if valid format
-   */
-  private static isValidDateFormat(dateStr: string): boolean {
-    if (typeof dateStr !== 'string') {
-      return false;
-    }
-
-    // Check format
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      return false;
-    }
-
-    // Check if it's a valid date
-    const date = new Date(dateStr);
-    return (
-      date instanceof Date && !isNaN(date.getTime()) && date.toISOString().split('T')[0] === dateStr
-    );
   }
 
   /**
