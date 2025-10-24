@@ -1,5 +1,84 @@
 # Modelo de Datos: Series de Tiempo
 
+## ¿Qué son las Series?
+
+Las **series** son **conjuntos de datos temporales** que representan indicadores económicos y financieros de Argentina. Cada serie contiene puntos de datos históricos organizados por fecha.
+
+### Definición Técnica
+Una serie es un **catálogo de datos** que agrupa puntos temporales relacionados bajo un identificador único. Cada punto contiene:
+- **Fecha** (`ts`): Timestamp del dato
+- **Valor** (`value`): Valor numérico del indicador
+- **Metadatos**: Información adicional sobre la serie
+
+### Tipos de Series en el Sistema
+
+**1. Series BCRA Monetarias** (Banco Central)
+- **Base Monetaria** (`1`): Dinero en circulación
+- **Leliq Total** (`53`): Letras de Liquidez del BCRA
+- **Pases Pasivos** (`42`): Operaciones de pases pasivos
+- **Pases Activos** (`154`): Operaciones de pases activos
+
+**2. Series FX Financiero** (DolarApi)
+- **MEP** (`dolarapi.mep_ars`): Dólar MEP (Mercado Electrónico de Pagos)
+- **CCL** (`dolarapi.ccl_ars`): Dólar CCL (Contado con Liquidación)
+- **Blue** (`dolarapi.blue_ars`): Dólar Blue (Paralelo)
+
+**3. Series Comerciales** (INDEC)
+- **Exportaciones** (`indec.exports_usd_m`): Exportaciones mensuales
+- **Importaciones** (`indec.imports_usd_m`): Importaciones mensuales
+- **Balanza Comercial** (`indec.trade_balance_usd_m`): Saldo comercial
+
+### ¿Para qué sirven las Series?
+
+1. **Análisis Económico**: Estudiar tendencias monetarias
+2. **Dashboards**: Visualizar indicadores en tiempo real
+3. **Alertas**: Detectar cambios significativos
+4. **Reportes**: Generar informes automáticos
+5. **APIs**: Exponer datos a otras aplicaciones
+
+### Flujo de Datos
+
+```
+API Externa → Provider → Mapper → Series → Points
+     ↓           ↓         ↓        ↓        ↓
+  BCRA API → BCRAProvider → Normalize → Store → Query
+```
+
+Las series son el **corazón del sistema** - permiten organizar, almacenar y consultar datos económicos de manera estructurada y eficiente.
+
+### Ejemplo Práctico: Serie Base Monetaria
+
+**Serie (Catálogo):**
+```sql
+-- Tabla series
+id: "1"
+source: "bcra"
+frequency: "daily"
+unit: "ARS"
+metadata: {
+  "description": "Base Monetaria en millones de pesos",
+  "bcra_idVariable": "1",
+  "last_discovered": "2024-10-24T19:57:50.000Z"
+}
+```
+
+**Puntos de Datos:**
+```sql
+-- Tabla series_points
+series_id: "1", ts: "2024-01-01", value: 1500000000
+series_id: "1", ts: "2024-01-02", value: 1502500000
+series_id: "1", ts: "2024-01-03", value: 1505000000
+-- ... 441 puntos de datos totales
+```
+
+**Interpretación:**
+- **ID**: `1` (identificador en BCRA)
+- **Descripción**: Dinero en circulación en Argentina
+- **Frecuencia**: Diaria
+- **Unidad**: Pesos argentinos (ARS)
+- **Datos**: 441 puntos desde 2024-01-01 hasta 2024-12-31
+- **Fuente**: BCRA API v3
+
 ## Resumen Ejecutivo
 
 El sistema almacena dos tipos principales de información económica:
