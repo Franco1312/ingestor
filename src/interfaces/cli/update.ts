@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { FetchAndStoreSeriesUseCase } from '../../application/usecases/fetchAndStoreSeries.js';
-import { seriesRepository } from '../../infrastructure/db/seriesRepo.js';
-import { BcraMonetariasProvider, ProviderChain } from '../../infrastructure/providers/index.js';
-import { logger } from '../../infrastructure/log/logger.js';
-import { CLI as events } from '../../infrastructure/log/log-events.js';
-import { config } from '../../infrastructure/config/index.js';
+import { FetchAndStoreSeriesUseCase } from '@/application/usecases/fetchAndStoreSeries.js';
+import { seriesRepository } from '@/infrastructure/db/seriesRepo.js';
+import {
+  BcraMonetariasProvider,
+  BcraCambiariasProvider,
+  DolarApiProvider,
+  ProviderChain,
+} from '@/infrastructure/providers/index.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { CLI as events } from '@/infrastructure/log/log-events.js';
+import { config } from '@/infrastructure/config/index.js';
 
 interface UpdateOptions {
   series?: string;
@@ -20,7 +25,15 @@ function getSeriesToUpdate(options: UpdateOptions): string[] {
 
 function createUseCase() {
   const bcraMonetariasProvider = new BcraMonetariasProvider();
-  const providerChain = new ProviderChain([bcraMonetariasProvider]);
+  const bcraCambiariasProvider = new BcraCambiariasProvider();
+  const dolarApiProvider = new DolarApiProvider();
+
+  const providerChain = new ProviderChain([
+    bcraMonetariasProvider,
+    bcraCambiariasProvider,
+    dolarApiProvider,
+  ]);
+
   return new FetchAndStoreSeriesUseCase(seriesRepository, providerChain);
 }
 

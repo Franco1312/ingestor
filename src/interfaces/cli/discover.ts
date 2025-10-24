@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { DiscoverSeriesUseCase } from '../../application/usecases/discoverSeries.js';
-import { seriesRepository } from '../../infrastructure/db/seriesRepo.js';
-import { logger } from '../../infrastructure/log/logger.js';
-import { CLI as events } from '../../infrastructure/log/log-events.js';
+import { DiscoverSeriesUseCase } from '@/application/usecases/discoverSeries.js';
+import { seriesRepository } from '@/infrastructure/db/seriesRepo.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { CLI as events } from '@/infrastructure/log/log-events.js';
 
 interface DiscoveryResult {
   mappedSeries: Array<{

@@ -1,7 +1,7 @@
-import type { ISeriesRepository } from '../../domain/ports/index.js';
-import { logger } from '../../infrastructure/log/logger.js';
-import { BcraClient } from '../../infrastructure/http/clients/bcraClient.js';
-import { DISCOVER_SERIES_USE_CASE as events } from '../../infrastructure/log/log-events.js';
+import type { ISeriesRepository } from '@/domain/ports/index.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { BcraClient } from '@/infrastructure/http/clients/bcraClient.js';
+import { DISCOVER_SERIES_USE_CASE as events } from '@/infrastructure/log/log-events.js';
 
 interface BcraVariable {
   idVariable: number;
@@ -21,6 +21,21 @@ const SERIES_MAPPING = [
     keywords: ['base monetaria', 'monetary base', 'base monetaria - total'],
     seriesId: '15',
     description: 'Base monetaria - Total (en millones de pesos)',
+  },
+  {
+    keywords: ['leliq', 'letras de liquidez', 'leliq total'],
+    seriesId: 'bcra.leliq_total_ars',
+    description: 'Stock de Leliq (millones de ARS)',
+  },
+  {
+    keywords: ['pases pasivos', 'pases pasivos total'],
+    seriesId: 'bcra.pases_pasivos_total_ars',
+    description: 'Stock de Pases pasivos (millones de ARS)',
+  },
+  {
+    keywords: ['pases activos', 'pases activos total'],
+    seriesId: 'bcra.pases_activos_total_ars',
+    description: 'Stock de Pases activos (millones de ARS)',
   },
 ];
 

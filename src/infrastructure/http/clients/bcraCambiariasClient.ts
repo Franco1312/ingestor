@@ -3,13 +3,16 @@ import { config } from '@/infrastructure/config/index.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { BCRA_CLIENT as events } from '@/infrastructure/log/log-events.js';
 
-export class BcraClient extends BaseHttpClient {
+export class BcraCambiariasClient extends BaseHttpClient {
   constructor() {
-    super(config.externalServices.bcra.baseUrl, config.externalServices.bcra.timeout);
+    super(
+      config.externalServices.bcraCambiarias.baseUrl,
+      config.externalServices.bcraCambiarias.timeout
+    );
 
-    if (config.externalServices.bcra.caBundlePath) {
+    if (config.externalServices.bcraCambiarias.caBundlePath) {
       this.axiosInstance.defaults.httpsAgent = this.createHttpsAgent(
-        config.externalServices.bcra.caBundlePath
+        config.externalServices.bcraCambiarias.caBundlePath
       );
     }
   }
@@ -17,18 +20,18 @@ export class BcraClient extends BaseHttpClient {
   async getAvailableSeries(): Promise<unknown[]> {
     logger.info({
       event: events.GET_AVAILABLE_SERIES,
-      msg: 'Fetching available series from BCRA',
+      msg: 'Fetching available series from BCRA Cambiarias',
     });
 
     try {
-      const response = await this.axiosInstance.get('/estadisticas/v3.0/Monetarias');
+      const response = await this.axiosInstance.get('/');
 
       const responseData = response.data as Record<string, unknown>;
       const results = (responseData.results as unknown[]) || [];
 
       logger.info({
         event: events.GET_AVAILABLE_SERIES,
-        msg: 'Successfully fetched BCRA series',
+        msg: 'Successfully fetched BCRA Cambiarias series',
         data: { count: results.length },
       });
 
@@ -36,11 +39,11 @@ export class BcraClient extends BaseHttpClient {
     } catch (error) {
       logger.error({
         event: events.GET_AVAILABLE_SERIES,
-        msg: 'Failed to fetch BCRA series',
+        msg: 'Failed to fetch BCRA Cambiarias series',
         err: error as Error,
       });
       throw new Error(
-        `Failed to fetch BCRA series: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to fetch BCRA Cambiarias series: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -56,12 +59,12 @@ export class BcraClient extends BaseHttpClient {
 
     logger.info({
       event: events.GET_SERIES_DATA,
-      msg: 'Fetching series data from BCRA',
+      msg: 'Fetching series data from BCRA Cambiarias',
       data: { seriesId, from, to, limit, offset },
     });
 
     try {
-      let url = `/estadisticas/v3.0/Monetarias/${seriesId}?desde=${from}`;
+      let url = `/${seriesId}?desde=${from}`;
 
       if (to) url += `&hasta=${to}`;
       if (limit) url += `&limit=${limit}`;
@@ -71,7 +74,7 @@ export class BcraClient extends BaseHttpClient {
 
       logger.info({
         event: events.GET_SERIES_DATA,
-        msg: 'Successfully fetched BCRA series data',
+        msg: 'Successfully fetched BCRA Cambiarias series data',
         data: { seriesId, url },
       });
 
@@ -79,12 +82,12 @@ export class BcraClient extends BaseHttpClient {
     } catch (error) {
       logger.error({
         event: events.GET_SERIES_DATA,
-        msg: 'Failed to fetch BCRA series data',
+        msg: 'Failed to fetch BCRA Cambiarias series data',
         err: error as Error,
         data: { seriesId },
       });
       throw new Error(
-        `Failed to fetch BCRA series data: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to fetch BCRA Cambiarias series data: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -94,16 +97,16 @@ export class BcraClient extends BaseHttpClient {
 
     logger.info({
       event: events.HEALTH_CHECK,
-      msg: 'Checking BCRA API health',
+      msg: 'Checking BCRA Cambiarias API health',
     });
 
     try {
-      await this.axiosInstance.get('/estadisticas/v3.0/Monetarias');
+      await this.axiosInstance.get('/');
       const responseTime = Date.now() - startTime;
 
       logger.info({
         event: events.HEALTH_CHECK,
-        msg: 'BCRA API health check successful',
+        msg: 'BCRA Cambiarias API health check successful',
         data: { responseTime },
       });
 
@@ -114,7 +117,7 @@ export class BcraClient extends BaseHttpClient {
 
       logger.error({
         event: events.HEALTH_CHECK,
-        msg: 'BCRA API health check failed',
+        msg: 'BCRA Cambiarias API health check failed',
         err: error as Error,
         data: { responseTime },
       });

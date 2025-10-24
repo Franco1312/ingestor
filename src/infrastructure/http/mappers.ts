@@ -1,8 +1,8 @@
-import type { SeriesPoint } from '../../domain/entities/index.js';
-import { validateSeriesPoint } from '../../domain/entities/index.js';
-import { logger } from '../log/logger.js';
-import { DATA_MAPPERS as events } from '../log/log-events.js';
-import { DateService } from '../../domain/utils/dateService.js';
+import type { SeriesPoint } from '@/domain/entities/index.js';
+import { validateSeriesPoint } from '@/domain/entities/index.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { DATA_MAPPERS as events } from '@/infrastructure/log/log-events.js';
+import { DateService } from '@/domain/utils/dateService.js';
 
 export class DataMappers {
   static mapRawDataToSeriesPoints(

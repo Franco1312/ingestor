@@ -4,10 +4,10 @@ import type {
   FetchRangeParams,
   FetchRangeResult,
   ProviderChain as IProviderChain,
-} from '../../domain/providers.js';
-import { logger } from '../log/logger.js';
-import { config } from '../config/index.js';
-import { PROVIDER_CHAIN as events } from '../log/log-events.js';
+} from '@/domain/providers.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { config } from '@/infrastructure/config/index.js';
+import { PROVIDER_CHAIN as events } from '@/infrastructure/log/log-events.js';
 
 export class ProviderChain implements IProviderChain {
   private readonly providers: Map<string, SeriesProvider>;
@@ -38,7 +38,11 @@ export class ProviderChain implements IProviderChain {
   }
 
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
-    const providersToTry = [this.primaryProvider, ...this.fallbackProviders];
+    const suggestedProvider = this.suggestProvider(params.externalId);
+    const providersToTry = [
+      suggestedProvider,
+      ...this.fallbackProviders.filter(p => p !== suggestedProvider),
+    ];
 
     logger.info({
       event: events.FETCH_RANGE,
@@ -47,6 +51,7 @@ export class ProviderChain implements IProviderChain {
         externalId: params.externalId,
         from: params.from,
         to: params.to,
+        suggestedProvider,
         providersToTry,
       },
     });
@@ -196,5 +201,25 @@ export class ProviderChain implements IProviderChain {
 
   hasProvider(name: string): boolean {
     return this.providers.has(name);
+  }
+
+  private suggestProvider(externalId: string): string {
+    if (externalId.startsWith('dolarapi.')) {
+      return 'DOLARAPI';
+    }
+
+    if (externalId.startsWith('bcra.usd_official')) {
+      return 'BCRA_CAMBIARIAS';
+    }
+
+    if (externalId.startsWith('indec.')) {
+      return 'DATOS_SERIES';
+    }
+
+    if (externalId.startsWith('bcra.') || /^\d+$/.test(externalId)) {
+      return 'BCRA_MONETARIAS';
+    }
+
+    return this.primaryProvider;
   }
 }

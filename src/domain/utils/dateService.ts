@@ -138,4 +138,8 @@ export class DateService {
   static isValidDate(dateStr: string): boolean {
     return this.validateDateFormat(dateStr).isValid;
   }
+
+  static now(): number {
+    return Date.now();
+  }
 }

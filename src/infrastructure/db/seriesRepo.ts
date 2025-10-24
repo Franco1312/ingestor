@@ -1,8 +1,8 @@
-import type { ISeriesRepository } from '../../domain/ports/index.js';
-import type { SeriesPoint, SeriesMetadata } from '../../domain/entities/index.js';
+import type { ISeriesRepository } from '@/domain/ports/index.js';
+import type { SeriesPoint, SeriesMetadata } from '@/domain/entities/index.js';
 import { db } from './pg.js';
-import { logger } from '../log/logger.js';
-import { SERIES_REPOSITORY as events } from '../log/log-events.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { SERIES_REPOSITORY as events } from '@/infrastructure/log/log-events.js';
 
 class SeriesRepository implements ISeriesRepository {
   async getLastDate(seriesId: string): Promise<string | null> {

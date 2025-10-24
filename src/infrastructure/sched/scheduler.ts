@@ -1,11 +1,11 @@
 import cron from 'node-cron';
-import { FetchAndStoreSeriesUseCase } from '../../application/usecases/fetchAndStoreSeries.js';
-import { seriesRepository } from '../db/seriesRepo.js';
-import { BcraMonetariasProvider, ProviderChain } from '../providers/index.js';
-import { logger } from '../log/logger.js';
-import { config } from '../config/index.js';
-import { db } from '../db/pg.js';
-import { SCHEDULER as events } from '../log/log-events.js';
+import { FetchAndStoreSeriesUseCase } from '@/application/usecases/fetchAndStoreSeries.js';
+import { seriesRepository } from '@/infrastructure/db/seriesRepo.js';
+import { BcraMonetariasProvider, ProviderChain } from '@/infrastructure/providers/index.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { config } from '@/infrastructure/config/index.js';
+import { db } from '@/infrastructure/db/pg.js';
+import { SCHEDULER as events } from '@/infrastructure/log/log-events.js';
 
 export class Scheduler {
   private cronJob: cron.ScheduledTask | null = null;
@@ -71,7 +71,6 @@ export class Scheduler {
         logger.error({
           event: events.EXECUTE_DAILY_UPDATE,
           msg: 'Database connection failed',
-          err: new Error('Database connection failed'),
         });
         return;
       }
@@ -122,9 +121,9 @@ export class Scheduler {
           logger.error({
             event: events.EXECUTE_DAILY_UPDATE,
             msg: 'Series update failed',
-            err: new Error(result.error || 'Unknown error'),
             data: {
               seriesId: result.seriesId,
+              error: result.error || 'Unknown error',
             },
           });
         }

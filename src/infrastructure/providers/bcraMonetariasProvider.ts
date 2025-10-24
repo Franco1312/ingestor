@@ -3,12 +3,13 @@ import type {
   ProviderHealth,
   FetchRangeParams,
   FetchRangeResult,
-} from '../../domain/providers.js';
-import type { SeriesPoint } from '../../domain/entities/index.js';
-import { BcraClient } from '../http/clients/bcraClient.js';
+} from '@/domain/providers.js';
+import type { SeriesPoint } from '@/domain/entities/index.js';
+import { BcraClient } from '@/infrastructure/http/clients/bcraClient.js';
 
-import { logger } from '../log/logger.js';
-import { BCRA_MONETARIAS_PROVIDER as events } from '../log/log-events.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { BCRA_MONETARIAS_PROVIDER as events } from '@/infrastructure/log/log-events.js';
+import { DateService } from '@/domain/utils/dateService.js';
 
 export class BcraMonetariasProvider implements SeriesProvider {
   readonly name = 'BCRA_MONETARIAS';
@@ -20,13 +21,13 @@ export class BcraMonetariasProvider implements SeriesProvider {
   }
 
   async health(): Promise<ProviderHealth> {
-    const startTime = Date.now();
+    const startTime = DateService.now();
 
     try {
       const healthResult = await this.bcraClient.healthCheck();
       const result: ProviderHealth = {
         isHealthy: healthResult.isHealthy,
-        responseTime: Date.now() - startTime,
+        responseTime: DateService.now() - startTime,
       };
       if (healthResult.error) {
         result.error = healthResult.error;
@@ -35,7 +36,7 @@ export class BcraMonetariasProvider implements SeriesProvider {
     } catch (error) {
       return {
         isHealthy: false,
-        responseTime: Date.now() - startTime,
+        responseTime: DateService.now() - startTime,
         error: error instanceof Error ? error.message : String(error),
       };
     }
@@ -44,23 +45,10 @@ export class BcraMonetariasProvider implements SeriesProvider {
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
     const { externalId, from, to, limit = 1000, offset = 0 } = params;
 
-    logger.info({
-      event: events.FETCH_RANGE,
-      msg: 'Starting BCRA Monetarias data fetch',
-      data: {
-        externalId,
-        from,
-        to,
-        limit,
-        offset,
-      },
-    });
-
     try {
       const allPoints: SeriesPoint[] = [];
       let currentOffset = offset;
       let hasMore = true;
-      let totalCount = 0;
 
       while (hasMore) {
         const responseBody = await this.bcraClient.getSeriesData({
@@ -76,31 +64,7 @@ export class BcraMonetariasProvider implements SeriesProvider {
 
         hasMore = pagePoints.length === limit;
         currentOffset += limit;
-        totalCount += pagePoints.length;
-
-        logger.info({
-          event: events.FETCH_RANGE,
-          msg: 'Fetched page',
-          data: {
-            externalId,
-            pageOffset: currentOffset - limit,
-            pagePointsCount: pagePoints.length,
-            totalPointsSoFar: allPoints.length,
-            hasMore,
-          },
-        });
       }
-
-      logger.info({
-        event: events.FETCH_RANGE,
-        msg: 'BCRA Monetarias data fetch completed',
-        data: {
-          externalId,
-          totalPointsFetched: allPoints.length,
-          pagesFetched: Math.ceil(totalCount / limit),
-          dateRange: { from, to },
-        },
-      });
 
       return {
         points: allPoints,
@@ -113,7 +77,6 @@ export class BcraMonetariasProvider implements SeriesProvider {
         event: events.FETCH_RANGE,
         msg: 'BCRA Monetarias data fetch failed',
         err: error as Error,
-        data: { externalId },
       });
       throw error;
     }
@@ -173,11 +136,7 @@ export class BcraMonetariasProvider implements SeriesProvider {
 
   private parseDate(dateString: string | undefined | null): string | null | undefined {
     if (!dateString) return null;
-
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return null;
-
-    return date.toISOString().split('T')[0];
+    return DateService.formatDate(new Date(dateString));
   }
 
   private parseValue(value: unknown): number | null {

@@ -1,8 +1,10 @@
-import type { ISeriesRepository } from '../../domain/ports/index.js';
-import type { SeriesPoint } from '../../domain/entities/index.js';
-import type { ProviderChain } from '../../domain/providers.js';
-import { logger } from '../../infrastructure/log/logger.js';
-import { BACKFILL_SERIES_USE_CASE as events } from '../../infrastructure/log/log-events.js';
+import type { ISeriesRepository } from '@/domain/ports/index.js';
+import type { SeriesPoint } from '@/domain/entities/index.js';
+import type { ProviderChain } from '@/domain/providers.js';
+import type { SeriesMappingService } from '@/domain/services/seriesMappingService.js';
+import { SeriesIdResolver } from '@/infrastructure/providers/seriesIdResolver.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { BACKFILL_SERIES_USE_CASE as events } from '@/infrastructure/log/log-events.js';
 
 export interface BackfillResult {
   success: boolean;
@@ -19,10 +21,15 @@ export interface BackfillParams {
 }
 
 export class BackfillSeriesUseCase {
+  private readonly idResolver: SeriesIdResolver;
+
   constructor(
     private readonly seriesRepository: ISeriesRepository,
-    private readonly providerChain: ProviderChain
-  ) {}
+    private readonly providerChain: ProviderChain,
+    private readonly mappingService: SeriesMappingService
+  ) {
+    this.idResolver = new SeriesIdResolver(mappingService);
+  }
 
   async execute(params: BackfillParams): Promise<BackfillResult> {
     const { seriesId, fromDate, toDate } = params;
@@ -34,7 +41,7 @@ export class BackfillSeriesUseCase {
 
     try {
       const points = await this.fetchHistoricalData(seriesId, fromDate, toDate);
-      const storedCount = await this.storeData(points);
+      const storedCount = await this.storeData(points, seriesId);
 
       logger.info({
         event: events.EXECUTE,
@@ -87,11 +94,27 @@ export class BackfillSeriesUseCase {
     return result.points;
   }
 
-  private async storeData(points: SeriesPoint[]): Promise<number> {
+  private async storeData(points: SeriesPoint[], originalSeriesId: string): Promise<number> {
     if (points.length === 0) {
       return 0;
     }
 
-    return await this.seriesRepository.upsertPoints(points);
+    const providerName = this.determineProviderName(originalSeriesId);
+    const internalId = await this.idResolver.resolveToInternalId(originalSeriesId, providerName);
+
+    const resolvedPoints = points.map(point => ({
+      ...point,
+      seriesId: internalId,
+    }));
+
+    return await this.seriesRepository.upsertPoints(resolvedPoints);
+  }
+
+  private determineProviderName(seriesId: string): string {
+    if (seriesId.startsWith('dolarapi.')) return 'DOLARAPI';
+    if (seriesId.startsWith('bcra.')) return 'BCRA_MONETARIAS';
+    if (seriesId.startsWith('indec.')) return 'DATOS_SERIES';
+    if (/^\d+$/.test(seriesId)) return 'BCRA_MONETARIAS';
+    return 'BCRA_MONETARIAS';
   }
 }

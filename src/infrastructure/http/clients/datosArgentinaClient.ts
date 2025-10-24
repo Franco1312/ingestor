@@ -1,5 +1,5 @@
-import { BaseHttpClient } from '../baseHttpClient.js';
-import { config } from '../../config/index.js';
+import { BaseHttpClient } from '@/infrastructure/http/baseHttpClient.js';
+import { config } from '@/infrastructure/config/index.js';
 
 export class DatosArgentinaClient extends BaseHttpClient {
   constructor() {

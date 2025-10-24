@@ -43,6 +43,7 @@ export interface ExternalServicesConfig {
   bcra: ExternalServiceConfig;
   bcraCambiarias: ExternalServiceConfig;
   datosArgentina: ExternalServiceConfig;
+  dolarApi: ExternalServiceConfig;
 }
 
 export interface EnvironmentConfig {

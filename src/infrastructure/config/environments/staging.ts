@@ -1,4 +1,4 @@
-import { EnvironmentConfig } from '../types';
+import { EnvironmentConfig } from '@/infrastructure/config/types';
 
 export const stagingConfig: EnvironmentConfig = {
   externalServices: {
@@ -17,6 +17,11 @@ export const stagingConfig: EnvironmentConfig = {
     datosArgentina: {
       baseUrl: 'https://apis.datos.gob.ar/series/api',
       timeout: 20000,
+      retries: 3,
+    },
+    dolarApi: {
+      baseUrl: 'https://dolarapi.com/v1',
+      timeout: 15000,
       retries: 3,
     },
   },

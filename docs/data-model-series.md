@@ -291,3 +291,30 @@ Documentar el cambio en `metadata` y considerar crear una nueva serie si el camb
 - Verificar que `bcra_idVariable` corresponda al ID real
 - Confirmar que `datos_id` sea válido en la API
 - Mantener `last_discovered` actualizado
+
+## Nuevas Series Agregadas
+
+### Series de Pasivos Remunerados (BCRA Monetarias)
+- **`bcra.leliq_total_ars`**: Stock de Leliq (millones de ARS, diario)
+- **`bcra.pases_pasivos_total_ars`**: Stock de Pases pasivos (millones de ARS, diario)
+- **`bcra.pases_activos_total_ars`**: Stock de Pases activos (millones de ARS, diario)
+
+### Series de Comercio Exterior (INDEC via Datos Argentina)
+- **`indec.trade_balance_usd_m`**: Saldo comercial de bienes (USD, mensual)
+- **`indec.exports_usd_m`**: Exportaciones de bienes (USD, mensual)
+- **`indec.imports_usd_m`**: Importaciones de bienes (USD, mensual)
+
+### Series de FX Financiero (DolarApi)
+- **`dolarapi.mep_ars`**: Dólar MEP (ARS/USD, diario)
+- **`dolarapi.ccl_ars`**: Dólar CCL (ARS/USD, diario)
+- **`dolarapi.blue_ars`**: Dólar Blue (ARS/USD, diario)
+
+### Series de FX Oficial (BCRA Cambiarias)
+- **`bcra.usd_official_ars`**: Tipo de cambio oficial mayorista (ARS/USD, diario)
+
+### Características de las Nuevas Series
+- **Fuentes**: BCRA Monetarias, BCRA Cambiarias, INDEC, DolarApi
+- **Frecuencias**: Diaria (FX y pasivos), Mensual (comercio)
+- **Unidades**: ARS, USD, ARS/USD, index
+- **Descubrimiento**: Automático via API discovery
+- **Fallbacks**: Configurados para fuentes alternativas cuando aplica

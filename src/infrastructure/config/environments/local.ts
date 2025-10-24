@@ -1,4 +1,4 @@
-import { EnvironmentConfig } from '../types';
+import { EnvironmentConfig } from '@/infrastructure/config/types';
 
 export const localConfig: EnvironmentConfig = {
   externalServices: {
@@ -17,6 +17,11 @@ export const localConfig: EnvironmentConfig = {
     datosArgentina: {
       baseUrl: 'https://apis.datos.gob.ar/series/api',
       timeout: 30000,
+      retries: 3,
+    },
+    dolarApi: {
+      baseUrl: 'https://dolarapi.com/v1',
+      timeout: 15000,
       retries: 3,
     },
   },

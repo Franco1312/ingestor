@@ -1,6 +1,6 @@
-import { db } from '../../infrastructure/db/pg.js';
-import { logger } from '../../infrastructure/log/logger.js';
-import { DATABASE as events } from '../../infrastructure/log/log-events.js';
+import { db } from '@/infrastructure/db/pg.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { DATABASE as events } from '@/infrastructure/log/log-events.js';
 
 export const healthCheck = async (): Promise<{
   status: string;

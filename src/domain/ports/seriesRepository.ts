@@ -1,4 +1,4 @@
-import type { SeriesPoint, SeriesMetadata } from '../entities/index.js';
+import type { SeriesPoint, SeriesMetadata } from '@/domain/entities/index.js';
 
 export interface ISeriesRepository {
   getLastDate(seriesId: string): Promise<string | null>;

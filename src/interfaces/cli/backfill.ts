@@ -1,12 +1,20 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { BackfillSeriesUseCase } from '../../application/usecases/backfillSeries.js';
-import { seriesRepository } from '../../infrastructure/db/seriesRepo.js';
-import { BcraMonetariasProvider, ProviderChain } from '../../infrastructure/providers/index.js';
-import { logger } from '../../infrastructure/log/logger.js';
-import { CLI as events } from '../../infrastructure/log/log-events.js';
-import { DateService } from '../../domain/utils/dateService.js';
+import { BackfillSeriesUseCase } from '@/application/usecases/backfillSeries.js';
+import { seriesRepository } from '@/infrastructure/db/seriesRepo.js';
+import {
+  BcraMonetariasProvider,
+  BcraCambiariasProvider,
+  DolarApiProvider,
+  DatosSeriesProvider,
+  ProviderChain,
+} from '@/infrastructure/providers/index.js';
+import { SeriesMappingServiceImpl } from '@/domain/services/seriesMappingService.js';
+import { seriesMappingRepository } from '@/infrastructure/db/seriesMappingRepo.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { CLI as events } from '@/infrastructure/log/log-events.js';
+import { DateService } from '@/domain/utils/dateService.js';
 
 interface BackfillOptions {
   series: string;
@@ -33,8 +41,23 @@ class BackfillCLI {
 
   private initializeProviders(): void {
     const bcraMonetariasProvider = new BcraMonetariasProvider();
-    const providerChain = new ProviderChain([bcraMonetariasProvider]);
-    this.backfillUseCase = new BackfillSeriesUseCase(seriesRepository, providerChain);
+    const bcraCambiariasProvider = new BcraCambiariasProvider();
+    const dolarApiProvider = new DolarApiProvider();
+    const datosSeriesProvider = new DatosSeriesProvider();
+
+    const providerChain = new ProviderChain([
+      bcraMonetariasProvider,
+      bcraCambiariasProvider,
+      dolarApiProvider,
+      datosSeriesProvider,
+    ]);
+
+    const mappingService = new SeriesMappingServiceImpl(seriesMappingRepository);
+    this.backfillUseCase = new BackfillSeriesUseCase(
+      seriesRepository,
+      providerChain,
+      mappingService
+    );
   }
 
   private validateDateFormats(options: BackfillOptions): void {

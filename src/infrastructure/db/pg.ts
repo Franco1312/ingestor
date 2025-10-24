@@ -1,7 +1,7 @@
 import { Pool, PoolClient } from 'pg';
-import { logger } from '../log/logger.js';
-import { config } from '../config/index.js';
-import { DATABASE as events } from '../log/log-events.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { config } from '@/infrastructure/config/index.js';
+import { DATABASE as events } from '@/infrastructure/log/log-events.js';
 
 class DatabasePool {
   private pool: Pool;

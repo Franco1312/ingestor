@@ -5,25 +5,26 @@ import type {
   FetchRangeResult,
 } from '@/domain/providers.js';
 import type { SeriesPoint } from '@/domain/entities/index.js';
-import { BcraClient } from '@/infrastructure/http/clients/bcraClient.js';
-import { config } from '@/infrastructure/config/index.js';
+import { BcraCambiariasClient } from '@/infrastructure/http/clients/bcraCambiariasClient.js';
+
 import { logger } from '@/infrastructure/log/logger.js';
+import { BCRA_MONETARIAS_PROVIDER as events } from '@/infrastructure/log/log-events.js';
 import { DateService } from '@/domain/utils/dateService.js';
 
-export class BcraV3Provider implements SeriesProvider {
-  readonly name = 'BCRA_V3';
+export class BcraCambiariasProvider implements SeriesProvider {
+  readonly name = 'BCRA_CAMBIARIAS';
 
-  private readonly bcraClient: BcraClient;
+  private readonly bcraCambiariasClient: BcraCambiariasClient;
 
   constructor() {
-    this.bcraClient = new BcraClient();
+    this.bcraCambiariasClient = new BcraCambiariasClient();
   }
 
   async health(): Promise<ProviderHealth> {
     const startTime = DateService.now();
 
     try {
-      const healthResult = await this.bcraClient.healthCheck();
+      const healthResult = await this.bcraCambiariasClient.healthCheck();
       const result: ProviderHealth = {
         isHealthy: healthResult.isHealthy,
         responseTime: DateService.now() - startTime,
@@ -42,61 +43,50 @@ export class BcraV3Provider implements SeriesProvider {
   }
 
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
-    const { externalId, from, to, limit = config.app.pageSize, offset = 0 } = params;
-
-    logger.info({
-      event: 'BCRA_V3_PROVIDER.FETCH_RANGE',
-      msg: 'Fetching BCRA data',
-      data: { externalId, from, to },
-    });
+    const { externalId, from, to, limit = 1000, offset = 0 } = params;
 
     try {
-      const response = await this.bcraClient.getSeriesData({
-        seriesId: externalId,
-        from,
-        to,
-        limit,
-        offset,
-      });
+      const allPoints: SeriesPoint[] = [];
+      let currentOffset = offset;
+      let hasMore = true;
 
-      const points = this.normalizeResponse(response, externalId);
+      while (hasMore) {
+        const responseBody = await this.bcraCambiariasClient.getSeriesData({
+          seriesId: externalId,
+          from,
+          to,
+          limit,
+          offset: currentOffset,
+        });
 
-      logger.info({
-        event: 'BCRA_V3_PROVIDER.FETCH_RANGE',
-        msg: 'BCRA data fetched',
-        data: {
-          externalId,
-          pointsFetched: points.length,
-        },
-      });
+        const pagePoints = this.normalizeResponse(responseBody, externalId);
+        allPoints.push(...pagePoints);
+
+        hasMore = pagePoints.length === limit;
+        currentOffset += limit;
+      }
 
       return {
-        points,
-        totalCount: points.length,
-        hasMore: points.length === limit,
+        points: allPoints,
+        totalCount: allPoints.length,
+        hasMore: false,
         provider: this.name,
       };
     } catch (error) {
       logger.error({
-        event: 'BCRA_V3_PROVIDER.FETCH_RANGE',
-        msg: 'BCRA data fetch failed',
+        event: events.FETCH_RANGE,
+        msg: 'BCRA Cambiarias data fetch failed',
         err: error as Error,
-        data: { externalId },
       });
       throw error;
     }
   }
 
   async getAvailableSeries(): Promise<
-    Array<{
-      id: string;
-      title: string;
-      description?: string;
-      frequency?: string;
-    }>
+    Array<{ id: string; title: string; description?: string; frequency?: string }>
   > {
     try {
-      const data = await this.bcraClient.getAvailableSeries();
+      const data = await this.bcraCambiariasClient.getAvailableSeries();
       return data.map((item: unknown) => {
         const seriesItem = item as Record<string, unknown>;
         const result: {
@@ -105,24 +95,20 @@ export class BcraV3Provider implements SeriesProvider {
           description?: string;
           frequency?: string;
         } = {
-          id: (seriesItem.idSerie as string) || (seriesItem.id as string) || 'unknown',
-          title: (seriesItem.nombre as string) || (seriesItem.title as string) || 'Unknown',
+          id: String(seriesItem.idVariable || 'unknown'),
+          title: (seriesItem.descripcion as string) || 'Unknown',
         };
 
-        if (seriesItem.descripcion || seriesItem.description) {
-          result.description =
-            (seriesItem.descripcion as string) || (seriesItem.description as string);
-        }
-        if (seriesItem.frecuencia) {
-          result.frequency = seriesItem.frecuencia as string;
+        if (seriesItem.categoria) {
+          result.description = seriesItem.categoria as string;
         }
 
         return result;
       });
     } catch (error) {
       logger.error({
-        event: 'BCRA_V3_PROVIDER.GET_AVAILABLE_SERIES',
-        msg: 'Failed to get available BCRA series',
+        event: events.GET_AVAILABLE_SERIES,
+        msg: 'Failed to get available BCRA Cambiarias series',
         err: error as Error,
       });
       throw error;

@@ -3,11 +3,12 @@ import type {
   ProviderHealth,
   FetchRangeParams,
   FetchRangeResult,
-} from '../../domain/providers.js';
-import type { SeriesPoint } from '../../domain/entities/index.js';
-import { DatosArgentinaClient } from '../http/clients/datosArgentinaClient.js';
-import { config } from '../config/index.js';
-import { logger } from '../log/logger.js';
+} from '@/domain/providers.js';
+import type { SeriesPoint } from '@/domain/entities/index.js';
+import { DatosArgentinaClient } from '@/infrastructure/http/clients/datosArgentinaClient.js';
+import { config } from '@/infrastructure/config/index.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { DateService } from '@/domain/utils/dateService.js';
 
 export class DatosSeriesProvider implements SeriesProvider {
   readonly name = 'DATOS_SERIES';
@@ -19,13 +20,13 @@ export class DatosSeriesProvider implements SeriesProvider {
   }
 
   async health(): Promise<ProviderHealth> {
-    const startTime = Date.now();
+    const startTime = DateService.now();
 
     try {
       const healthResult = await this.datosClient.healthCheck();
       const result: ProviderHealth = {
         isHealthy: healthResult.isHealthy,
-        responseTime: Date.now() - startTime,
+        responseTime: DateService.now() - startTime,
       };
       if (healthResult.error) {
         result.error = healthResult.error;
@@ -34,7 +35,7 @@ export class DatosSeriesProvider implements SeriesProvider {
     } catch (error) {
       return {
         isHealthy: false,
-        responseTime: Date.now() - startTime,
+        responseTime: DateService.now() - startTime,
         error: error instanceof Error ? error.message : String(error),
       };
     }
@@ -122,11 +123,7 @@ export class DatosSeriesProvider implements SeriesProvider {
 
   private parseDate(dateString: string | undefined | null): string | null | undefined {
     if (!dateString) return null;
-
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return null;
-
-    return date.toISOString().split('T')[0];
+    return DateService.formatDate(new Date(dateString));
   }
 
   private parseValue(value: unknown): number | null {

@@ -1,6 +1,6 @@
 import pino from 'pino';
 import { Logger, PinoLogger } from './simpleLogger.js';
-import { config } from '../config/index.js';
+import { config } from '@/infrastructure/config/index.js';
 
 const pinoLogger = pino({
   level: config.app.logLevel,
