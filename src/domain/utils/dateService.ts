@@ -27,7 +27,6 @@ export class DateService {
       };
     }
 
-    // Validate that it's a real date
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) {
       return {

@@ -27,7 +27,7 @@ export const localConfig: EnvironmentConfig = {
     timezone: 'America/Argentina/Buenos_Aires',
     logLevel: 'info',
     pageSize: 1000,
-    seriesWhitelist: ['1', '15'], // BCRA IDs: 1=Reservas Internacionales, 15=Base Monetaria
+    seriesWhitelist: ['1', '15'],
     http: {
       timeout: parseInt(process.env.HTTP_TIMEOUT_MS || '30000'),
       retries: parseInt(process.env.HTTP_RETRIES || '3'),

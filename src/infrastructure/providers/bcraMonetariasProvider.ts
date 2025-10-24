@@ -6,7 +6,7 @@ import type {
 } from '../../domain/providers.js';
 import type { SeriesPoint } from '../../domain/entities/index.js';
 import { BcraClient } from '../http/clients/bcraClient.js';
-// Remove unused import
+
 import { logger } from '../log/logger.js';
 import { BCRA_MONETARIAS_PROVIDER as events } from '../log/log-events.js';
 
@@ -62,7 +62,6 @@ export class BcraMonetariasProvider implements SeriesProvider {
       let hasMore = true;
       let totalCount = 0;
 
-      // Implement pagination
       while (hasMore) {
         const responseBody = await this.bcraClient.getSeriesData({
           seriesId: externalId,
@@ -75,7 +74,6 @@ export class BcraMonetariasProvider implements SeriesProvider {
         const pagePoints = this.normalizeResponse(responseBody, externalId);
         allPoints.push(...pagePoints);
 
-        // Check if we have more pages
         hasMore = pagePoints.length === limit;
         currentOffset += limit;
         totalCount += pagePoints.length;

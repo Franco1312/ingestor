@@ -13,7 +13,6 @@ export class DatosSeriesProvider implements SeriesProvider {
   readonly name = 'DATOS_SERIES';
 
   private readonly datosClient: DatosArgentinaClient;
-  // Remove loggerContext as it's not available in the new logger
 
   constructor() {
     this.datosClient = new DatosArgentinaClient();
@@ -95,7 +94,6 @@ export class DatosSeriesProvider implements SeriesProvider {
       frequency?: string;
     }>
   > {
-    // Datos Argentina API does not have a direct endpoint for listing all available series
     logger.info({
       event: 'DATOS_SERIES_PROVIDER.GET_AVAILABLE_SERIES',
       msg: 'getAvailableSeries not implemented for Datos Argentina Provider',

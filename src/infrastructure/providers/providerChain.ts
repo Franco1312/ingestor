@@ -13,17 +13,14 @@ export class ProviderChain implements IProviderChain {
   private readonly providers: Map<string, SeriesProvider>;
   private readonly primaryProvider: string;
   private readonly fallbackProviders: string[];
-  // Remove loggerContext as it's not available in the new logger
 
   constructor(providers: SeriesProvider[]) {
     this.providers = new Map();
 
-    // Register providers
     for (const provider of providers) {
       this.providers.set(provider.name, provider);
     }
 
-    // Configure provider order based on config
     this.primaryProvider = config.app.providers.primary;
     this.fallbackProviders = providers
       .filter(p => p.name !== this.primaryProvider)
@@ -69,7 +66,6 @@ export class ProviderChain implements IProviderChain {
       }
 
       try {
-        // Check provider health before attempting to fetch
         const health = await provider.health();
 
         if (!health.isHealthy) {
@@ -93,7 +89,6 @@ export class ProviderChain implements IProviderChain {
           },
         });
 
-        // Attempt to fetch data from this provider
         const result = await provider.fetchRange(params);
 
         logger.info({
@@ -121,12 +116,10 @@ export class ProviderChain implements IProviderChain {
           },
         });
 
-        // Continue to next provider
         continue;
       }
     }
 
-    // All providers failed
     logger.error({
       event: events.FETCH_RANGE,
       msg: 'All providers failed to fetch data',
@@ -150,7 +143,6 @@ export class ProviderChain implements IProviderChain {
       msg: 'Checking health status of all providers',
     });
 
-    // Check health of all providers in parallel
     const healthChecks = Array.from(this.providers.entries()).map(async ([name, provider]) => {
       try {
         const health = await provider.health();

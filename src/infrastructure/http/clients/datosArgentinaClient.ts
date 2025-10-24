@@ -1,6 +1,5 @@
 import { BaseHttpClient } from '../baseHttpClient.js';
 import { config } from '../../config/index.js';
-// Remove unused import
 
 export class DatosArgentinaClient extends BaseHttpClient {
   constructor() {
@@ -20,7 +19,6 @@ export class DatosArgentinaClient extends BaseHttpClient {
     const { seriesId, from, to, limit, offset } = params;
 
     try {
-      // Build URL manually
       let url = `/series?ids=${seriesId}&start_date=${from}&format=json`;
 
       if (to) url += `&end_date=${to}`;

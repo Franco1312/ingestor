@@ -7,7 +7,6 @@ import { config } from '../config/index.js';
 import { db } from '../db/pg.js';
 import { SCHEDULER as events } from '../log/log-events.js';
 
-// Scheduler for automated data updates
 export class Scheduler {
   private cronJob: cron.ScheduledTask | null = null;
   private isRunning = false;
@@ -21,9 +20,6 @@ export class Scheduler {
       return;
     }
 
-    // Schedule daily update at 08:05 AM Argentina time
-    // Cron format: minute hour day month day-of-week
-    // '5 8 * * *' = 5 minutes past 8 AM every day
     this.cronJob = cron.schedule(
       '5 8 * * *',
       async () => {
@@ -63,7 +59,6 @@ export class Scheduler {
 
   async executeDailyUpdate(): Promise<void> {
     const startTime = Date.now();
-    // Remove logger.child as it's not available in the new logger
 
     try {
       logger.info({
@@ -71,7 +66,6 @@ export class Scheduler {
         msg: 'Starting scheduled daily update',
       });
 
-      // Check database connectivity
       const isConnected = await db.isConnected();
       if (!isConnected) {
         logger.error({
@@ -82,23 +76,18 @@ export class Scheduler {
         return;
       }
 
-      // Initialize BCRA Monetarias provider
       const bcraMonetariasProvider = new BcraMonetariasProvider();
       const providerChain = new ProviderChain([bcraMonetariasProvider]);
 
-      // Initialize use case
       const fetchAndStoreUseCase = new FetchAndStoreSeriesUseCase(seriesRepository, providerChain);
 
-      // Execute update for all whitelisted series
       const results = await fetchAndStoreUseCase.executeMultiple(config.app.seriesWhitelist);
 
-      // Calculate summary statistics
       const successCount = results.filter(r => r.success).length;
       const totalPointsFetched = results.reduce((sum, r) => sum + r.pointsFetched, 0);
       const totalPointsStored = results.reduce((sum, r) => sum + r.pointsStored, 0);
       const totalDuration = Date.now() - startTime;
 
-      // Log summary
       logger.info({
         event: events.EXECUTE_DAILY_UPDATE,
         msg: 'Daily update completed',
@@ -118,7 +107,6 @@ export class Scheduler {
         },
       });
 
-      // Log individual results for debugging
       for (const result of results) {
         if (result.success) {
           logger.info({
@@ -185,5 +173,4 @@ export class Scheduler {
   }
 }
 
-// Export singleton scheduler instance
 export const scheduler = new Scheduler();

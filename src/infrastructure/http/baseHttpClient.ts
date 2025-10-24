@@ -10,7 +10,6 @@ export class BaseHttpClient {
   constructor(baseUrl: string, timeout: number = 15000) {
     this.baseUrl = baseUrl;
 
-    // Create HTTP agents with keep-alive
     const httpAgent = new http.Agent({
       keepAlive: true,
       keepAliveMsecs: 30000,
@@ -23,10 +22,9 @@ export class BaseHttpClient {
       keepAliveMsecs: 30000,
       maxSockets: 50,
       maxFreeSockets: 10,
-      rejectUnauthorized: process.env.NODE_ENV !== 'local', // Only disable TLS in local
+      rejectUnauthorized: process.env.NODE_ENV !== 'local',
     });
 
-    // Create axios instance
     this.axiosInstance = axios.create({
       baseURL: this.baseUrl,
       timeout,

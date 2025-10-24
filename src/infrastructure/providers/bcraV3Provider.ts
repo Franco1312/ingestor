@@ -13,7 +13,6 @@ export class BcraV3Provider implements SeriesProvider {
   readonly name = 'BCRA_V3';
 
   private readonly bcraClient: BcraClient;
-  // Remove loggerContext as it's not available in the new logger
 
   constructor() {
     this.bcraClient = new BcraClient();
@@ -132,7 +131,6 @@ export class BcraV3Provider implements SeriesProvider {
   private normalizeResponse(response: unknown, seriesId: string): SeriesPoint[] {
     const points: SeriesPoint[] = [];
 
-    // BCRA API returns data in response.results array
     const responseData = response as Record<string, unknown>;
     if (responseData && responseData.results) {
       const results = responseData.results as unknown[];

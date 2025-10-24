@@ -14,7 +14,6 @@ export class DataMappers {
 
     for (const rawPoint of rawData) {
       try {
-        // Convert value to number
         const numericValue = this.convertToNumber(rawPoint.value);
         if (numericValue === null) {
           invalidPoints.push({
@@ -25,7 +24,6 @@ export class DataMappers {
           continue;
         }
 
-        // Validate date format using DateService
         const dateValidation = DateService.validateDateFormat(rawPoint.date);
         if (!dateValidation.isValid) {
           invalidPoints.push({
@@ -36,7 +34,6 @@ export class DataMappers {
           continue;
         }
 
-        // Create and validate SeriesPoint
         const seriesPoint = validateSeriesPoint({
           seriesId,
           ts: rawPoint.date,
@@ -53,7 +50,6 @@ export class DataMappers {
       }
     }
 
-    // Log invalid points for debugging
     if (invalidPoints.length > 0) {
       logger.info({
         event: events.MAP_BCRA_RESPONSE_TO_SERIES_POINTS,
@@ -76,13 +72,11 @@ export class DataMappers {
     }
 
     if (typeof value === 'string') {
-      // Handle common string formats
       const trimmed = value.trim();
       if (trimmed === '' || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'n/a') {
         return null;
       }
 
-      // Parse numeric string
       const parsed = parseFloat(trimmed);
       return isFinite(parsed) ? parsed : null;
     }

@@ -3,7 +3,6 @@ import { logger } from '../log/logger.js';
 import { config } from '../config/index.js';
 import { DATABASE as events } from '../log/log-events.js';
 
-// Database connection pool
 class DatabasePool {
   private pool: Pool;
 
@@ -15,7 +14,6 @@ class DatabasePool {
       connectionTimeoutMillis: 10000,
     });
 
-    // Handle pool errors
     this.pool.on('error', err => {
       logger.error({
         event: events.QUERY,
@@ -24,7 +22,6 @@ class DatabasePool {
       });
     });
 
-    // Handle pool connection events
     this.pool.on('connect', () => {
       logger.info({
         event: events.GET_CLIENT,
@@ -169,5 +166,4 @@ class DatabasePool {
   }
 }
 
-// Export singleton database pool instance
 export const db = new DatabasePool();

@@ -2,17 +2,13 @@ import { db } from '../../infrastructure/db/pg.js';
 import { logger } from '../../infrastructure/log/logger.js';
 import { DATABASE as events } from '../../infrastructure/log/log-events.js';
 
-// Health check function
 export const healthCheck = async (): Promise<{
   status: string;
   timestamp: string;
   services: { database: string };
   error?: string;
 }> => {
-  // Remove loggerContext as it's not available in the new logger
-
   try {
-    // Check database connectivity
     const isDbConnected = await db.isConnected();
 
     const healthStatus = {
@@ -50,17 +46,13 @@ export const healthCheck = async (): Promise<{
   }
 };
 
-// Readiness check function
 export const readinessCheck = async (): Promise<{
   status: string;
   timestamp: string;
   services?: { database: string };
   reason?: string;
 }> => {
-  // Remove loggerContext as it's not available in the new logger
-
   try {
-    // Check database connectivity and basic queries
     const isDbConnected = await db.isConnected();
 
     if (!isDbConnected) {
@@ -75,7 +67,6 @@ export const readinessCheck = async (): Promise<{
       };
     }
 
-    // Test a simple query
     await db.query('SELECT 1');
 
     logger.info({

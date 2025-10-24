@@ -5,8 +5,6 @@ import { logger } from './infrastructure/log/logger.js';
 import { config } from './infrastructure/config/index.js';
 
 async function main(): Promise<void> {
-  // Remove loggerContext as it's not available in the new logger
-
   try {
     logger.info({
       event: 'MAIN.START',
@@ -22,10 +20,8 @@ async function main(): Promise<void> {
       },
     });
 
-    // Start the scheduler
     scheduler.start();
 
-    // Log scheduler status
     const status = scheduler.getStatus();
     logger.info({
       event: 'MAIN.SCHEDULER_STATUS',
@@ -33,7 +29,6 @@ async function main(): Promise<void> {
       data: status,
     });
 
-    // Handle graceful shutdown
     process.on('SIGINT', async () => {
       logger.info({
         event: 'MAIN.SHUTDOWN',
@@ -52,13 +47,11 @@ async function main(): Promise<void> {
       process.exit(0);
     });
 
-    // Keep the process running
     logger.info({
       event: 'MAIN.RUNNING',
       msg: 'Ingestor service is running. Press Ctrl+C to stop.',
     });
 
-    // Run forever
     await new Promise(() => {});
   } catch (error) {
     logger.error({
@@ -70,7 +63,6 @@ async function main(): Promise<void> {
   }
 }
 
-// Only run main if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
     logger.error({
@@ -82,7 +74,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 }
 
-// Export for programmatic use
 export { scheduler };
 export { logger };
 export { config };

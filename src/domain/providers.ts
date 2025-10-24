@@ -8,8 +8,8 @@ export interface ProviderHealth {
 
 export interface FetchRangeParams {
   externalId: string;
-  from: string; // YYYY-MM-DD format
-  to?: string | undefined; // YYYY-MM-DD format, optional
+  from: string;
+  to?: string | undefined;
   limit?: number | undefined;
   offset?: number | undefined;
 }

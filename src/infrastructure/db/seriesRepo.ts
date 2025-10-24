@@ -4,7 +4,6 @@ import { db } from './pg.js';
 import { logger } from '../log/logger.js';
 import { SERIES_REPOSITORY as events } from '../log/log-events.js';
 
-// Repository implementation for series data persistence
 class SeriesRepository implements ISeriesRepository {
   async getLastDate(seriesId: string): Promise<string | null> {
     try {
@@ -34,7 +33,6 @@ class SeriesRepository implements ISeriesRepository {
       return await db.transaction(async client => {
         let upsertedCount = 0;
 
-        // Process points in batches to avoid query size limits
         const batchSize = 1000;
         for (let i = 0; i < points.length; i += batchSize) {
           const batch = points.slice(i, i + batchSize);
@@ -287,5 +285,4 @@ class SeriesRepository implements ISeriesRepository {
   }
 }
 
-// Export singleton repository instance
 export const seriesRepository = new SeriesRepository();

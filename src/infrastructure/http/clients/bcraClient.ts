@@ -7,7 +7,6 @@ export class BcraClient extends BaseHttpClient {
   constructor() {
     super(config.externalServices.bcra.baseUrl, config.externalServices.bcra.timeout);
 
-    // Update HTTPS agent with CA bundle if provided
     if (config.externalServices.bcra.caBundlePath) {
       this.axiosInstance.defaults.httpsAgent = this.createHttpsAgent(
         config.externalServices.bcra.caBundlePath
@@ -23,7 +22,7 @@ export class BcraClient extends BaseHttpClient {
 
     try {
       const response = await this.axiosInstance.get('/estadisticas/v3.0/Monetarias');
-      // BCRA API returns { status: 200, results: [...] }
+
       const responseData = response.data as Record<string, unknown>;
       const results = (responseData.results as unknown[]) || [];
 
