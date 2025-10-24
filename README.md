@@ -14,6 +14,7 @@
 - [Configuration](#configuration)
 - [Development](#development)
 - [Deployment](#deployment)
+- [Documentation](#documentation)
 
 ## 🎯 Overview
 
@@ -21,13 +22,16 @@ The **Ingestor** is a robust data ingestion service designed to collect, normali
 
 ### Key Features
 
-- ✅ **Real-time data ingestion** from BCRA Monetarias v3 API
+- ✅ **Multi-source data ingestion** from BCRA, DolarApi, and INDEC
+- ✅ **Intelligent provider routing** based on series type
+- ✅ **Series mapping system** for external-to-internal ID resolution
 - ✅ **Idempotent upserts** preventing duplicate data
 - ✅ **Automatic failover** between data providers
 - ✅ **Structured logging** with comprehensive observability
 - ✅ **Dockerized deployment** with PostgreSQL + TimescaleDB
 - ✅ **Scheduled updates** with configurable cron jobs
 - ✅ **CLI tools** for manual operations and debugging
+- ✅ **Clean Architecture** with domain-driven design
 
 ## 🏢 Business Context
 
@@ -51,17 +55,39 @@ Argentina's economic data is scattered across multiple government agencies and A
 
 ## 📊 Data Sources
 
-### Primary Source: BCRA Monetarias v3
+### Primary Sources
 
+#### BCRA Monetarias v3
 **Base URL**: `https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias`
 
-The service primarily ingests data from BCRA's official monetary statistics API, which provides:
-
+Monetary statistics from Argentina's Central Bank:
 - **International Reserves** (Reservas Internacionales)
 - **Monetary Base** (Base Monetaria)
-- **Exchange Rates** (Tipos de Cambio)
-- **Interest Rates** (Tasas de Interés)
-- **Banking Statistics** (Estadísticas Bancarias)
+- **Leliq Total** (Letras de Liquidez)
+- **Pases Pasivos** (Pases Pasivos)
+- **Pases Activos** (Pases Activos)
+
+#### BCRA Cambiarias v3
+**Base URL**: `https://api.bcra.gob.ar/estadisticas/v3.0/Cambiarias`
+
+Exchange rate data:
+- **Official Exchange Rate** (Tipo de Cambio Oficial)
+
+#### DolarApi
+**Base URL**: `https://api.dolarapi.com/v1/dolares`
+
+Financial FX rates:
+- **MEP** (Mercado Electrónico de Pagos)
+- **CCL** (Contado con Liquidación)
+- **Blue** (Dólar Paralelo)
+
+#### INDEC via Datos Argentina
+**Base URL**: `https://apis.datos.gob.ar/series/api`
+
+Economic indicators:
+- **Trade Balance** (Balanza Comercial)
+- **Exports** (Exportaciones)
+- **Imports** (Importaciones)
 
 ### API Endpoints Used
 
@@ -173,9 +199,11 @@ series_id |     ts     | value
 ----------|------------|-------
 1         | 2025-10-21 | 40540
 1         | 2025-10-20 | 41316
-1         | 2025-10-17 | 41170
 15        | 2025-10-21 | 40177879
-15        | 2025-10-20 | 40972264
+bcra.leliq_total_ars | 2025-10-21 | 1500000000
+dolarapi.mep_ars | 2025-10-21 | 850.50
+dolarapi.ccl_ars | 2025-10-21 | 852.30
+dolarapi.blue_ars | 2025-10-21 | 848.90
 ```
 
 ## 🔌 API Endpoints
@@ -475,6 +503,45 @@ All operations are logged with structured JSON format:
 3. Make your changes
 4. Add tests
 5. Submit a pull request
+
+## 📚 Documentation
+
+### Core Documentation
+
+- **[Data Model Documentation](docs/data-model-series.md)** - Comprehensive guide to the data model, series types, and business context
+- **[Code Guidelines](CODE_GUIDELINES.md)** - Development standards, architectural patterns, and coding conventions
+
+### Key Documentation Sections
+
+#### Data Model (`docs/data-model-series.md`)
+- **What are Series?** - Clear explanation of time-series data concepts
+- **Series Types** - BCRA Monetarias, FX Financial, Commercial data
+- **Database Schema** - Detailed table structures and relationships
+- **Business Context** - Real-world examples and use cases
+- **Data Sources** - Official APIs and data providers
+- **Examples** - Practical examples with real data
+
+#### Code Guidelines (`CODE_GUIDELINES.md`)
+- **Architectural Patterns** - Clean Architecture implementation
+- **Code Standards** - TypeScript, logging, error handling
+- **Repository Pattern** - Database access patterns
+- **Import Management** - Absolute imports with `@/` alias
+- **Quality Standards** - Testing, linting, formatting
+
+### Quick Start Documentation
+
+1. **Understanding the Data Model**: Start with `docs/data-model-series.md` to understand what series are and how they work
+2. **Development Setup**: Follow the [Development](#development) section for local setup
+3. **Code Standards**: Review `CODE_GUIDELINES.md` before contributing
+4. **Data Population**: Use the CLI commands to populate your database
+
+### Business Context
+
+The documentation is designed for:
+- **Data Scientists** - Understanding the data model and available series
+- **Developers** - Following code guidelines and architectural patterns
+- **Business Users** - Understanding what data is available and how to use it
+- **DevOps** - Deployment and monitoring considerations
 
 ## 📄 License
 
