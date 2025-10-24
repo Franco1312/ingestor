@@ -6,9 +6,6 @@ import { SERIES_REPOSITORY as events } from '../log/log-events.js';
 
 // Repository implementation for series data persistence
 class SeriesRepository implements ISeriesRepository {
-  /**
-   * Get the last available date for a series
-   */
   async getLastDate(seriesId: string): Promise<string | null> {
     try {
       const result = await db.query<{ ts: string }>(
@@ -28,9 +25,6 @@ class SeriesRepository implements ISeriesRepository {
     }
   }
 
-  /**
-   * Upsert series points (insert or update on conflict)
-   */
   async upsertPoints(points: SeriesPoint[]): Promise<number> {
     if (points.length === 0) {
       return 0;
@@ -101,9 +95,6 @@ class SeriesRepository implements ISeriesRepository {
     }
   }
 
-  /**
-   * Get series metadata by ID
-   */
   async getSeriesMetadata(seriesId: string): Promise<SeriesMetadata | null> {
     try {
       const result = await db.query<SeriesMetadata>('SELECT * FROM series WHERE id = $1', [
@@ -122,9 +113,6 @@ class SeriesRepository implements ISeriesRepository {
     }
   }
 
-  /**
-   * Get all series metadata
-   */
   async getAllSeriesMetadata(): Promise<SeriesMetadata[]> {
     try {
       const result = await db.query<SeriesMetadata>('SELECT * FROM series ORDER BY id');
@@ -145,16 +133,10 @@ class SeriesRepository implements ISeriesRepository {
     }
   }
 
-  /**
-   * Get all series from catalog (alias for getAllSeriesMetadata)
-   */
   async getAllSeries(): Promise<SeriesMetadata[]> {
     return this.getAllSeriesMetadata();
   }
 
-  /**
-   * Insert or update series metadata
-   */
   async upsertSeriesMetadata(metadata: SeriesMetadata): Promise<void> {
     try {
       await db.query(
@@ -195,9 +177,6 @@ class SeriesRepository implements ISeriesRepository {
     }
   }
 
-  /**
-   * Get series statistics
-   */
   async getSeriesStats(seriesId: string): Promise<{
     totalPoints: number;
     firstDate: string | null;
@@ -250,9 +229,6 @@ class SeriesRepository implements ISeriesRepository {
     }
   }
 
-  /**
-   * Delete series points within a date range
-   */
   async deletePointsInRange(seriesId: string, startDate: string, endDate: string): Promise<number> {
     try {
       const result = await db.query(
@@ -284,9 +260,6 @@ class SeriesRepository implements ISeriesRepository {
     }
   }
 
-  /**
-   * Update series metadata
-   */
   async updateSeriesMetadata(seriesId: string, metadata: Record<string, unknown>): Promise<void> {
     try {
       await db.query('UPDATE series SET metadata = $1 WHERE id = $2', [

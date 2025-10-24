@@ -4,17 +4,7 @@ import { logger } from '../log/logger.js';
 import { DATA_MAPPERS as events } from '../log/log-events.js';
 import { DateService } from '../../domain/utils/dateService.js';
 
-/**
- * Maps raw API response data to normalized SeriesPoint entities
- * Handles data validation, type conversion, and filtering of invalid points
- */
 export class DataMappers {
-  /**
-   * Maps raw API data points to validated SeriesPoint entities
-   * @param rawData - Array of raw data points from API
-   * @param seriesId - The series identifier
-   * @returns Array of validated SeriesPoint entities
-   */
   static mapRawDataToSeriesPoints(
     rawData: Array<{ date: string; value: string | number }>,
     seriesId: string
@@ -80,11 +70,6 @@ export class DataMappers {
     return points;
   }
 
-  /**
-   * Converts various value types to numbers
-   * @param value - Value to convert (string, number, or unknown)
-   * @returns Numeric value or null if conversion fails
-   */
   private static convertToNumber(value: unknown): number | null {
     if (typeof value === 'number') {
       return isFinite(value) ? value : null;
@@ -105,20 +90,10 @@ export class DataMappers {
     return null;
   }
 
-  /**
-   * Normalizes series ID for consistent storage
-   * @param seriesId - Raw series ID from API
-   * @returns Normalized series ID
-   */
   static normalizeSeriesId(seriesId: string): string {
     return seriesId.trim().toLowerCase();
   }
 
-  /**
-   * Extracts series metadata from API response
-   * @param apiResponse - Raw API response data
-   * @returns Normalized metadata object
-   */
   static extractSeriesMetadata(apiResponse: unknown): {
     title?: string;
     description?: string;

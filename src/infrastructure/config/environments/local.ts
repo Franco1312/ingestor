@@ -1,8 +1,5 @@
 import { EnvironmentConfig } from '../types';
 
-/**
- * Local development environment configuration
- */
 export const localConfig: EnvironmentConfig = {
   externalServices: {
     bcra: {

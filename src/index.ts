@@ -4,11 +4,6 @@ import { scheduler } from './infrastructure/sched/scheduler.js';
 import { logger } from './infrastructure/log/logger.js';
 import { config } from './infrastructure/config/index.js';
 
-/**
- * Main entry point for the ingestor service
- * This can be used for programmatic access to the scheduler
- */
-
 async function main(): Promise<void> {
   // Remove loggerContext as it's not available in the new logger
 

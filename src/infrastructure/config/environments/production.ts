@@ -1,8 +1,5 @@
 import { EnvironmentConfig } from '../types';
 
-/**
- * Production environment configuration
- */
 export const productionConfig: EnvironmentConfig = {
   externalServices: {
     bcra: {

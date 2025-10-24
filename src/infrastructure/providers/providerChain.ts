@@ -9,9 +9,6 @@ import { logger } from '../log/logger.js';
 import { config } from '../config/index.js';
 import { PROVIDER_CHAIN as events } from '../log/log-events.js';
 
-/**
- * Provider chain for automatic failover between different data sources
- */
 export class ProviderChain implements IProviderChain {
   private readonly providers: Map<string, SeriesProvider>;
   private readonly primaryProvider: string;
@@ -43,9 +40,6 @@ export class ProviderChain implements IProviderChain {
     });
   }
 
-  /**
-   * Fetch data using the provider chain with automatic failover
-   */
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
     const providersToTry = [this.primaryProvider, ...this.fallbackProviders];
 
@@ -148,9 +142,6 @@ export class ProviderChain implements IProviderChain {
     throw lastError || new Error('All providers failed to fetch data');
   }
 
-  /**
-   * Get the health status of all providers in the chain
-   */
   async getHealthStatus(): Promise<Record<string, ProviderHealth>> {
     const healthStatus: Record<string, ProviderHealth> = {};
 
@@ -199,30 +190,18 @@ export class ProviderChain implements IProviderChain {
     return healthStatus;
   }
 
-  /**
-   * Get the primary provider
-   */
   getPrimaryProvider(): SeriesProvider | undefined {
     return this.providers.get(this.primaryProvider);
   }
 
-  /**
-   * Get a specific provider by name
-   */
   getProvider(name: string): SeriesProvider | undefined {
     return this.providers.get(name);
   }
 
-  /**
-   * Get all available provider names
-   */
   getAvailableProviders(): string[] {
     return Array.from(this.providers.keys());
   }
 
-  /**
-   * Check if a specific provider is available
-   */
   hasProvider(name: string): boolean {
     return this.providers.has(name);
   }

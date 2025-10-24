@@ -2,10 +2,6 @@ import { BaseHttpClient } from '../baseHttpClient.js';
 import { config } from '../../config/index.js';
 // Remove unused import
 
-/**
- * Datos Argentina API Client
- * Simple client for Datos Argentina /series API
- */
 export class DatosArgentinaClient extends BaseHttpClient {
   constructor() {
     super(
@@ -14,9 +10,6 @@ export class DatosArgentinaClient extends BaseHttpClient {
     );
   }
 
-  /**
-   * Get series data by ID
-   */
   async getSeriesData(params: {
     seriesId: string;
     from: string;
@@ -43,9 +36,6 @@ export class DatosArgentinaClient extends BaseHttpClient {
     }
   }
 
-  /**
-   * Health check for Datos Argentina API
-   */
   async healthCheck(): Promise<{ isHealthy: boolean; error?: string; responseTime?: number }> {
     const startTime = Date.now();
 

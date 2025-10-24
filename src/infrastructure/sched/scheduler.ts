@@ -12,9 +12,6 @@ export class Scheduler {
   private cronJob: cron.ScheduledTask | null = null;
   private isRunning = false;
 
-  /**
-   * Start the scheduled job
-   */
   start(): void {
     if (this.cronJob) {
       logger.info({
@@ -52,9 +49,6 @@ export class Scheduler {
     });
   }
 
-  /**
-   * Stop the scheduled job
-   */
   stop(): void {
     if (this.cronJob) {
       this.cronJob.stop();
@@ -67,9 +61,6 @@ export class Scheduler {
     }
   }
 
-  /**
-   * Execute the daily update manually
-   */
   async executeDailyUpdate(): Promise<void> {
     const startTime = Date.now();
     // Remove logger.child as it's not available in the new logger
@@ -162,9 +153,6 @@ export class Scheduler {
     }
   }
 
-  /**
-   * Get scheduler status
-   */
   getStatus(): {
     isRunning: boolean;
     timezone: string;
@@ -179,9 +167,6 @@ export class Scheduler {
     return status;
   }
 
-  /**
-   * Execute a manual update for testing
-   */
   async executeManualUpdate(): Promise<void> {
     logger.info({
       event: events.EXECUTE_MANUAL_UPDATE,
@@ -190,9 +175,6 @@ export class Scheduler {
     await this.executeDailyUpdate();
   }
 
-  /**
-   * Start scheduler and execute immediate update
-   */
   async startWithImmediateUpdate(): Promise<void> {
     this.start();
     logger.info({

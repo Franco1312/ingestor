@@ -9,10 +9,6 @@ import { DatosArgentinaClient } from '../http/clients/datosArgentinaClient.js';
 import { config } from '../config/index.js';
 import { logger } from '../log/logger.js';
 
-/**
- * Datos Argentina Series Provider
- * Simple provider for Datos Argentina /series API
- */
 export class DatosSeriesProvider implements SeriesProvider {
   readonly name = 'DATOS_SERIES';
 
@@ -23,9 +19,6 @@ export class DatosSeriesProvider implements SeriesProvider {
     this.datosClient = new DatosArgentinaClient();
   }
 
-  /**
-   * Health check for Datos Argentina API
-   */
   async health(): Promise<ProviderHealth> {
     const startTime = Date.now();
 
@@ -48,9 +41,6 @@ export class DatosSeriesProvider implements SeriesProvider {
     }
   }
 
-  /**
-   * Fetch series data from Datos Argentina
-   */
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
     const { externalId, from, to, limit = config.app.pageSize, offset = 0 } = params;
 
@@ -97,9 +87,6 @@ export class DatosSeriesProvider implements SeriesProvider {
     }
   }
 
-  /**
-   * Get available series from Datos Argentina
-   */
   async getAvailableSeries(): Promise<
     Array<{
       id: string;
@@ -116,9 +103,6 @@ export class DatosSeriesProvider implements SeriesProvider {
     return [];
   }
 
-  /**
-   * Normalize Datos Argentina API response to our standard format
-   */
   private normalizeResponse(response: unknown, seriesId: string): SeriesPoint[] {
     const points: SeriesPoint[] = [];
 
@@ -138,9 +122,6 @@ export class DatosSeriesProvider implements SeriesProvider {
     return points;
   }
 
-  /**
-   * Parse date string to YYYY-MM-DD format
-   */
   private parseDate(dateString: string | undefined | null): string | null | undefined {
     if (!dateString) return null;
 
@@ -150,9 +131,6 @@ export class DatosSeriesProvider implements SeriesProvider {
     return date.toISOString().split('T')[0];
   }
 
-  /**
-   * Parse numeric value
-   */
   private parseValue(value: unknown): number | null {
     if (value === null || value === undefined || value === '') return null;
 

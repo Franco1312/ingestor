@@ -3,10 +3,6 @@ import { config } from '../../config/index.js';
 import { logger } from '../../log/logger.js';
 import { BCRA_CLIENT as events } from '../../log/log-events.js';
 
-/**
- * BCRA API Client
- * Simple client for BCRA Monetarias v3 API
- */
 export class BcraClient extends BaseHttpClient {
   constructor() {
     super(config.externalServices.bcra.baseUrl, config.externalServices.bcra.timeout);
@@ -19,9 +15,6 @@ export class BcraClient extends BaseHttpClient {
     }
   }
 
-  /**
-   * Get available series from BCRA
-   */
   async getAvailableSeries(): Promise<unknown[]> {
     logger.info({
       event: events.GET_AVAILABLE_SERIES,
@@ -53,9 +46,6 @@ export class BcraClient extends BaseHttpClient {
     }
   }
 
-  /**
-   * Get series data by ID
-   */
   async getSeriesData(params: {
     seriesId: string;
     from: string;
@@ -100,9 +90,6 @@ export class BcraClient extends BaseHttpClient {
     }
   }
 
-  /**
-   * Health check for BCRA API
-   */
   async healthCheck(): Promise<{ isHealthy: boolean; error?: string; responseTime?: number }> {
     const startTime = Date.now();
 

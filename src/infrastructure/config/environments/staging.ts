@@ -1,8 +1,5 @@
 import { EnvironmentConfig } from '../types';
 
-/**
- * Staging environment configuration
- */
 export const stagingConfig: EnvironmentConfig = {
   externalServices: {
     bcra: {

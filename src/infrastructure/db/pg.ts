@@ -47,9 +47,6 @@ class DatabasePool {
     });
   }
 
-  /**
-   * Get a client from the pool
-   */
   async getClient(): Promise<PoolClient> {
     try {
       const client = await this.pool.connect();
@@ -68,9 +65,6 @@ class DatabasePool {
     }
   }
 
-  /**
-   * Execute a query with automatic client management
-   */
   async query<T = unknown>(text: string, params?: unknown[]): Promise<T[]> {
     const client = await this.getClient();
     try {
@@ -98,9 +92,6 @@ class DatabasePool {
     }
   }
 
-  /**
-   * Execute a transaction with automatic rollback on error
-   */
   async transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.getClient();
     try {
@@ -135,9 +126,6 @@ class DatabasePool {
     }
   }
 
-  /**
-   * Check database connectivity
-   */
   async isConnected(): Promise<boolean> {
     try {
       await this.query('SELECT 1');
@@ -152,9 +140,6 @@ class DatabasePool {
     }
   }
 
-  /**
-   * Close the connection pool
-   */
   async close(): Promise<void> {
     try {
       await this.pool.end();
@@ -171,9 +156,6 @@ class DatabasePool {
     }
   }
 
-  /**
-   * Get pool statistics
-   */
   getPoolStats(): {
     totalCount: number;
     idleCount: number;

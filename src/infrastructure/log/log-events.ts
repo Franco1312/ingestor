@@ -1,8 +1,3 @@
-/**
- * Log event constants for consistent logging across the application
- * Format: CLASS_NAME.METHOD_NAME
- */
-
 // DiscoverSeriesUseCase events
 export const DISCOVER_SERIES_USE_CASE = {
   EXECUTE: 'DISCOVER_SERIES_USE_CASE.EXECUTE',

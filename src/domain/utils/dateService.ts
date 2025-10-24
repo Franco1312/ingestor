@@ -1,8 +1,3 @@
-/**
- * Centralized date validation and manipulation service
- * Handles all date-related operations across the application
- */
-
 export interface DateValidationResult {
   isValid: boolean;
   error?: string;
@@ -17,9 +12,6 @@ export class DateService {
   private static readonly DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
   private static readonly DATE_FORMAT = 'YYYY-MM-DD';
 
-  /**
-   * Validates if a date string is in the correct format (YYYY-MM-DD)
-   */
   static validateDateFormat(date: string): DateValidationResult {
     if (!date || typeof date !== 'string') {
       return {
@@ -47,9 +39,6 @@ export class DateService {
     return { isValid: true };
   }
 
-  /**
-   * Validates multiple dates at once
-   */
   static validateDates(dates: { date: string; field: string }[]): DateValidationResult {
     for (const { date, field } of dates) {
       const result = this.validateDateFormat(date);
@@ -63,9 +52,6 @@ export class DateService {
     return { isValid: true };
   }
 
-  /**
-   * Validates a date range (from and to dates)
-   */
   static validateDateRange(from: string, to?: string): DateValidationResult {
     const datesToValidate = [
       { date: from, field: 'start date' },
@@ -75,9 +61,6 @@ export class DateService {
     return this.validateDates(datesToValidate);
   }
 
-  /**
-   * Checks if a date range is valid (from <= to)
-   */
   static validateDateRangeLogic(from: string, to?: string): DateValidationResult {
     if (!to) {
       return { isValid: true };
@@ -96,25 +79,16 @@ export class DateService {
     return { isValid: true };
   }
 
-  /**
-   * Gets today's date in YYYY-MM-DD format
-   */
   static getToday(): string {
     return this.formatDate(new Date());
   }
 
-  /**
-   * Gets a date N days ago in YYYY-MM-DD format
-   */
   static getDaysAgo(days: number): string {
     const date = new Date();
     date.setDate(date.getDate() - days);
     return this.formatDate(date);
   }
 
-  /**
-   * Formats a date to YYYY-MM-DD format
-   */
   static formatDate(date: Date): string {
     const isoString = date.toISOString().split('T')[0];
     if (!isoString) {
@@ -123,16 +97,10 @@ export class DateService {
     return isoString;
   }
 
-  /**
-   * Parses a date string and returns a Date object
-   */
   static parseDate(dateString: string): Date {
     return new Date(dateString);
   }
 
-  /**
-   * Checks if a date is in the future
-   */
   static isFutureDate(date: string): boolean {
     const parsedDate = new Date(date);
     const today = new Date();
@@ -140,9 +108,6 @@ export class DateService {
     return parsedDate > today;
   }
 
-  /**
-   * Checks if a date is in the past
-   */
   static isPastDate(date: string): boolean {
     const parsedDate = new Date(date);
     const today = new Date();
@@ -150,9 +115,6 @@ export class DateService {
     return parsedDate < today;
   }
 
-  /**
-   * Gets the number of days between two dates
-   */
   static getDaysDifference(from: string, to: string): number {
     const fromDate = new Date(from);
     const toDate = new Date(to);
@@ -160,33 +122,20 @@ export class DateService {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  /**
-   * Add days to a date
-   */
   static addDays(date: Date, days: number): Date {
     const result = new Date(date);
     result.setDate(result.getDate() + days);
     return result;
   }
 
-  /**
-   * Format a Date object to YYYY-MM-DD string (alias for formatDate)
-   */
   static formatDateForAPI(date: Date): string {
     return this.formatDate(date);
   }
 
-  /**
-   * Get yesterday's date in YYYY-MM-DD format
-   */
   static getYesterday(): string {
     return this.getDaysAgo(1);
   }
 
-  /**
-   * Legacy compatibility - check if a date string is valid
-   * @deprecated Use validateDateFormat instead
-   */
   static isValidDate(dateStr: string): boolean {
     return this.validateDateFormat(dateStr).isValid;
   }

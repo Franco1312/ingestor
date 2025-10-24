@@ -9,10 +9,6 @@ import { BcraClient } from '../http/clients/bcraClient.js';
 import { config } from '../config/index.js';
 import { logger } from '../log/logger.js';
 
-/**
- * BCRA v3 API Provider
- * Simple provider for BCRA Monetarias API
- */
 export class BcraV3Provider implements SeriesProvider {
   readonly name = 'BCRA_V3';
 
@@ -23,9 +19,6 @@ export class BcraV3Provider implements SeriesProvider {
     this.bcraClient = new BcraClient();
   }
 
-  /**
-   * Health check for BCRA API
-   */
   async health(): Promise<ProviderHealth> {
     const startTime = Date.now();
 
@@ -48,9 +41,6 @@ export class BcraV3Provider implements SeriesProvider {
     }
   }
 
-  /**
-   * Fetch series data from BCRA
-   */
   async fetchRange(params: FetchRangeParams): Promise<FetchRangeResult> {
     const { externalId, from, to, limit = config.app.pageSize, offset = 0 } = params;
 
@@ -97,9 +87,6 @@ export class BcraV3Provider implements SeriesProvider {
     }
   }
 
-  /**
-   * Get available series from BCRA
-   */
   async getAvailableSeries(): Promise<
     Array<{
       id: string;
@@ -142,9 +129,6 @@ export class BcraV3Provider implements SeriesProvider {
     }
   }
 
-  /**
-   * Normalize BCRA API response to our standard format
-   */
   private normalizeResponse(response: unknown, seriesId: string): SeriesPoint[] {
     const points: SeriesPoint[] = [];
 
@@ -165,9 +149,6 @@ export class BcraV3Provider implements SeriesProvider {
     return points;
   }
 
-  /**
-   * Parse date string to YYYY-MM-DD format
-   */
   private parseDate(dateString: string | undefined | null): string | null | undefined {
     if (!dateString) return null;
 
@@ -177,9 +158,6 @@ export class BcraV3Provider implements SeriesProvider {
     return date.toISOString().split('T')[0];
   }
 
-  /**
-   * Parse numeric value
-   */
   private parseValue(value: unknown): number | null {
     if (value === null || value === undefined || value === '') return null;
 

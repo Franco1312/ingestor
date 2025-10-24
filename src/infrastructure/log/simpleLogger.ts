@@ -1,8 +1,3 @@
-/**
- * Logger with only info and error methods
- * Consistent structure across the application
- */
-
 export interface Logger {
   info(params: { event: string; msg: string; data?: unknown }): void;
   error(params: { event: string; msg: string; err?: Error | string; data?: unknown }): void;

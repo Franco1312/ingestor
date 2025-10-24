@@ -1,10 +1,4 @@
-/**
- * HTTP client port for external API calls
- */
 export interface IHttpClient {
-  /**
-   * Make HTTP GET request
-   */
   get(
     url: string,
     options?: {
@@ -16,9 +10,6 @@ export interface IHttpClient {
     body: unknown;
   }>;
 
-  /**
-   * Make HTTP POST request
-   */
   post(
     url: string,
     data?: unknown,
@@ -31,9 +22,6 @@ export interface IHttpClient {
     body: unknown;
   }>;
 
-  /**
-   * Make HTTP PUT request
-   */
   put(
     url: string,
     data?: unknown,
@@ -46,9 +34,6 @@ export interface IHttpClient {
     body: unknown;
   }>;
 
-  /**
-   * Make HTTP DELETE request
-   */
   delete(
     url: string,
     options?: {

@@ -3,10 +3,6 @@ import https from 'https';
 import http from 'http';
 import fs from 'fs';
 
-/**
- * Base HTTP Client with keep-alive agents
- * Simple base class that only handles agent creation
- */
 export class BaseHttpClient {
   protected readonly axiosInstance: AxiosInstance;
   protected readonly baseUrl: string;
@@ -44,9 +40,6 @@ export class BaseHttpClient {
     });
   }
 
-  /**
-   * Load additional CA bundle if provided
-   */
   protected loadCaBundle(caBundlePath?: string): string | undefined {
     if (!caBundlePath || !fs.existsSync(caBundlePath)) {
       return undefined;
@@ -59,9 +52,6 @@ export class BaseHttpClient {
     }
   }
 
-  /**
-   * Create HTTPS agent with CA bundle
-   */
   protected createHttpsAgent(caBundlePath?: string): https.Agent {
     const agentOptions: https.AgentOptions = {
       keepAlive: true,
