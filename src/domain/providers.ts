@@ -1,4 +1,4 @@
-import type { SeriesPoint } from './entities/index.js';
+import type { SeriesPoint } from '@/domain/entities/index.js';
 
 export interface ProviderHealth {
   isHealthy: boolean;

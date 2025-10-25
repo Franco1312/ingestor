@@ -89,6 +89,40 @@ export class DolarApiClient extends BaseHttpClient {
     }
   }
 
+  async getOfficialSpot(): Promise<{ ts: Date; value: number }> {
+    logger.info({
+      event: events.GET_SERIES_DATA,
+      msg: 'Fetching official USD spot from DolarApi',
+    });
+
+    try {
+      const response = await this.axiosInstance.get('/dolares/oficial');
+      const data = response.data as { fechaActualizacion: string; venta: number };
+
+      const result = {
+        ts: new Date(data.fechaActualizacion),
+        value: data.venta,
+      };
+
+      logger.info({
+        event: events.GET_SERIES_DATA,
+        msg: 'Successfully fetched official USD spot from DolarApi',
+        data: { ts: result.ts, value: result.value },
+      });
+
+      return result;
+    } catch (error) {
+      logger.error({
+        event: events.GET_SERIES_DATA,
+        msg: 'Failed to fetch official USD spot from DolarApi',
+        err: error as Error,
+      });
+      throw new Error(
+        `Failed to fetch official USD spot: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
   async healthCheck(): Promise<{ isHealthy: boolean; error?: string; responseTime?: number }> {
     const startTime = Date.now();
 
@@ -127,3 +161,5 @@ export class DolarApiClient extends BaseHttpClient {
     }
   }
 }
+
+export const defaultDolarApiClient = new DolarApiClient();

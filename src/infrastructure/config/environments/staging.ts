@@ -9,7 +9,7 @@ export const stagingConfig: EnvironmentConfig = {
       caBundlePath: process.env.BCRA_CA_BUNDLE_PATH,
     },
     bcraCambiarias: {
-      baseUrl: 'https://api.bcra.gob.ar/estadisticas/v3.0/Cambiarias',
+      baseUrl: 'https://api.bcra.gob.ar/estadisticascambiarias/v1.0',
       timeout: 20000,
       retries: 3,
       caBundlePath: process.env.BCRA_CA_BUNDLE_PATH,
@@ -32,7 +32,7 @@ export const stagingConfig: EnvironmentConfig = {
     timezone: 'America/Argentina/Buenos_Aires',
     logLevel: 'info',
     pageSize: 1000,
-    seriesWhitelist: ['143.3_NO_PR_2004_A_21:IPC', '143.3_NO_PR_2004_A_21:IPC_2024'],
+    seriesWhitelist: ['1', '15', 'bcra.usd_official_ars', '168.1_T_CAMBIOR_D_0_0_26'],
     http: {
       timeout: parseInt(process.env.HTTP_TIMEOUT_MS || '20000'),
       retries: parseInt(process.env.HTTP_RETRIES || '3'),

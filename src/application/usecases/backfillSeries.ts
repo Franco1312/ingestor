@@ -91,7 +91,53 @@ export class BackfillSeriesUseCase {
       to: toDate,
     });
 
+    // Add metadata for official USD series
+    if (seriesId === 'bcra.usd_official_ars' || seriesId === '168.1_T_CAMBIOR_D_0_0_26') {
+      return result.points.map(point => ({
+        ...point,
+        metadata: {
+          oficial_fx_source: this.determineOficialFxSource(result.provider),
+          provider_primary: this.determineProviderPrimary(result.provider),
+          endpoint: this.determineEndpoint(result.provider),
+          fetched_at: new Date().toISOString(),
+        },
+      }));
+    }
+
     return result.points;
+  }
+
+  private determineOficialFxSource(provider: string): string {
+    if (provider === 'BCRA_OFICIAL') {
+      return 'bcra'; // BCRA Cambiarias is primary
+    }
+    return 'unknown';
+  }
+
+  private determineProviderPrimary(provider: string): string {
+    switch (provider) {
+      case 'BCRA_OFICIAL':
+        return 'bcra_cambiarias';
+      case 'DATOS_SERIES':
+        return 'datos_series';
+      case 'DOLARAPI':
+        return 'dolarapi';
+      default:
+        return 'unknown';
+    }
+  }
+
+  private determineEndpoint(provider: string): string {
+    switch (provider) {
+      case 'BCRA_OFICIAL':
+        return '/Cotizaciones/USD';
+      case 'DATOS_SERIES':
+        return '/series?ids=168.1_T_CAMBIOR_D_0_0_26';
+      case 'DOLARAPI':
+        return '/dolares/oficial';
+      default:
+        return 'unknown';
+    }
   }
 
   private async storeData(points: SeriesPoint[], originalSeriesId: string): Promise<number> {

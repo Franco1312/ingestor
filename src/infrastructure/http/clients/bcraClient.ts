@@ -127,3 +127,5 @@ export class BcraClient extends BaseHttpClient {
     }
   }
 }
+
+export const defaultBcraClient = new BcraClient();

@@ -1,5 +1,5 @@
 import pino from 'pino';
-import { Logger, PinoLogger } from './simpleLogger.js';
+import { Logger, PinoLogger } from '@/infrastructure/log/simpleLogger.js';
 import { config } from '@/infrastructure/config/index.js';
 
 const pinoLogger = pino({

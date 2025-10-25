@@ -2,7 +2,7 @@ import type {
   ISeriesMappingRepository,
   SeriesMapping,
 } from '@/domain/ports/seriesMappingRepository.js';
-import { db } from './pg.js';
+import { db } from '@/infrastructure/db/pg.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { SERIES_MAPPING as events } from '@/infrastructure/log/log-events.js';
 

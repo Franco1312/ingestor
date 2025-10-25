@@ -5,7 +5,10 @@ import type {
   FetchRangeResult,
 } from '@/domain/providers.js';
 import type { SeriesPoint } from '@/domain/entities/index.js';
-import { DolarApiClient } from '@/infrastructure/http/clients/dolarApiClient.js';
+import {
+  DolarApiClient,
+  defaultDolarApiClient,
+} from '@/infrastructure/http/clients/dolarApiClient.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { BCRA_MONETARIAS_PROVIDER as events } from '@/infrastructure/log/log-events.js';
 import { DateService } from '@/domain/utils/dateService.js';
@@ -13,11 +16,7 @@ import { DateService } from '@/domain/utils/dateService.js';
 export class DolarApiProvider implements SeriesProvider {
   readonly name = 'DOLARAPI';
 
-  private readonly dolarApiClient: DolarApiClient;
-
-  constructor() {
-    this.dolarApiClient = new DolarApiClient();
-  }
+  constructor(private readonly dolarApiClient: DolarApiClient = defaultDolarApiClient) {}
 
   async health(): Promise<ProviderHealth> {
     const startTime = DateService.now();
@@ -124,3 +123,5 @@ export class DolarApiProvider implements SeriesProvider {
     return points;
   }
 }
+
+export const defaultDolarApiProvider = new DolarApiProvider();

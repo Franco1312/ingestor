@@ -6,6 +6,8 @@ import { seriesRepository } from '@/infrastructure/db/seriesRepo.js';
 import {
   BcraMonetariasProvider,
   BcraCambiariasProvider,
+  BcraOficialProvider,
+  DatosSeriesProvider,
   DolarApiProvider,
   ProviderChain,
 } from '@/infrastructure/providers/index.js';
@@ -26,11 +28,15 @@ function getSeriesToUpdate(options: UpdateOptions): string[] {
 function createUseCase() {
   const bcraMonetariasProvider = new BcraMonetariasProvider();
   const bcraCambiariasProvider = new BcraCambiariasProvider();
+  const bcraOficialProvider = new BcraOficialProvider();
+  const datosSeriesProvider = new DatosSeriesProvider();
   const dolarApiProvider = new DolarApiProvider();
 
   const providerChain = new ProviderChain([
     bcraMonetariasProvider,
     bcraCambiariasProvider,
+    bcraOficialProvider,
+    datosSeriesProvider,
     dolarApiProvider,
   ]);
 

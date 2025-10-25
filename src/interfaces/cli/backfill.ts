@@ -6,6 +6,7 @@ import { seriesRepository } from '@/infrastructure/db/seriesRepo.js';
 import {
   BcraMonetariasProvider,
   BcraCambiariasProvider,
+  BcraOficialProvider,
   DolarApiProvider,
   DatosSeriesProvider,
   ProviderChain,
@@ -42,12 +43,14 @@ class BackfillCLI {
   private initializeProviders(): void {
     const bcraMonetariasProvider = new BcraMonetariasProvider();
     const bcraCambiariasProvider = new BcraCambiariasProvider();
+    const bcraOficialProvider = new BcraOficialProvider();
     const dolarApiProvider = new DolarApiProvider();
     const datosSeriesProvider = new DatosSeriesProvider();
 
     const providerChain = new ProviderChain([
       bcraMonetariasProvider,
       bcraCambiariasProvider,
+      bcraOficialProvider,
       dolarApiProvider,
       datosSeriesProvider,
     ]);

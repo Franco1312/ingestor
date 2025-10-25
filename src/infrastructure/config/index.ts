@@ -1,7 +1,7 @@
-import { localConfig } from './environments/local.js';
-import { stagingConfig } from './environments/staging.js';
-import { productionConfig } from './environments/production.js';
-import type { EnvironmentConfig } from './types.js';
+import { localConfig } from '@/infrastructure/config/environments/local.js';
+import { stagingConfig } from '@/infrastructure/config/environments/staging.js';
+import { productionConfig } from '@/infrastructure/config/environments/production.js';
+import type { EnvironmentConfig } from '@/infrastructure/config/types.js';
 
 function getEnvironmentConfig(): EnvironmentConfig {
   const nodeEnv = process.env.NODE_ENV || 'local';
@@ -20,4 +20,8 @@ function getEnvironmentConfig(): EnvironmentConfig {
 
 export const config = getEnvironmentConfig();
 
-export type { EnvironmentConfig, ExternalServiceConfig, ExternalServicesConfig } from './types.js';
+export type {
+  EnvironmentConfig,
+  ExternalServiceConfig,
+  ExternalServicesConfig,
+} from '@/infrastructure/config/types.js';

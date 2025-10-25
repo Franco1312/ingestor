@@ -8,6 +8,9 @@ import type {
 import { logger } from '@/infrastructure/log/logger.js';
 import { config } from '@/infrastructure/config/index.js';
 import { PROVIDER_CHAIN as events } from '@/infrastructure/log/log-events.js';
+import { defaultBcraMonetariasProvider } from '@/infrastructure/providers/bcraMonetariasProvider.js';
+import { defaultBcraCambiariasProvider } from '@/infrastructure/providers/bcraCambiariasProvider.js';
+import { defaultDolarApiProvider } from '@/infrastructure/providers/dolarApiProvider.js';
 
 export class ProviderChain implements IProviderChain {
   private readonly providers: Map<string, SeriesProvider>;
@@ -208,8 +211,8 @@ export class ProviderChain implements IProviderChain {
       return 'DOLARAPI';
     }
 
-    if (externalId.startsWith('bcra.usd_official')) {
-      return 'BCRA_CAMBIARIAS';
+    if (externalId === 'bcra.usd_official_ars' || externalId === '168.1_T_CAMBIOR_D_0_0_26') {
+      return 'BCRA_OFICIAL';
     }
 
     if (externalId.startsWith('indec.')) {
@@ -223,3 +226,9 @@ export class ProviderChain implements IProviderChain {
     return this.primaryProvider;
   }
 }
+
+export const defaultProviderChain = new ProviderChain([
+  defaultBcraMonetariasProvider,
+  defaultBcraCambiariasProvider,
+  defaultDolarApiProvider,
+]);

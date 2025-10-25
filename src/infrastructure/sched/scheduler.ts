@@ -1,7 +1,5 @@
 import cron from 'node-cron';
-import { FetchAndStoreSeriesUseCase } from '@/application/usecases/fetchAndStoreSeries.js';
-import { seriesRepository } from '@/infrastructure/db/seriesRepo.js';
-import { BcraMonetariasProvider, ProviderChain } from '@/infrastructure/providers/index.js';
+import { defaultFetchAndStoreSeriesUseCase } from '@/application/usecases/fetchAndStoreSeries.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { config } from '@/infrastructure/config/index.js';
 import { db } from '@/infrastructure/db/pg.js';
@@ -75,10 +73,7 @@ export class Scheduler {
         return;
       }
 
-      const bcraMonetariasProvider = new BcraMonetariasProvider();
-      const providerChain = new ProviderChain([bcraMonetariasProvider]);
-
-      const fetchAndStoreUseCase = new FetchAndStoreSeriesUseCase(seriesRepository, providerChain);
+      const fetchAndStoreUseCase = defaultFetchAndStoreSeriesUseCase;
 
       const results = await fetchAndStoreUseCase.executeMultiple(config.app.seriesWhitelist);
 

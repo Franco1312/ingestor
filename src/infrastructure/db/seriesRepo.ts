@@ -1,6 +1,6 @@
 import type { ISeriesRepository } from '@/domain/ports/index.js';
 import type { SeriesPoint, SeriesMetadata } from '@/domain/entities/index.js';
-import { db } from './pg.js';
+import { db } from '@/infrastructure/db/pg.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { SERIES_REPOSITORY as events } from '@/infrastructure/log/log-events.js';
 
@@ -40,17 +40,25 @@ class SeriesRepository implements ISeriesRepository {
           const values = batch
             .map((point, index) => {
               const offset = i + index;
-              return `($${offset * 3 + 1}, $${offset * 3 + 2}, $${offset * 3 + 3})`;
+              return `($${offset * 4 + 1}, $${offset * 4 + 2}, $${offset * 4 + 3}, $${offset * 4 + 4})`;
             })
             .join(', ');
 
-          const params = batch.flatMap(point => [point.seriesId, point.ts, point.value]);
+          const params = batch.flatMap(point => [
+            point.seriesId,
+            point.ts,
+            point.value,
+            point.metadata ? JSON.stringify(point.metadata) : null,
+          ]);
 
           const query = `
-            INSERT INTO series_points (series_id, ts, value)
+            INSERT INTO series_points (series_id, ts, value, metadata)
             VALUES ${values}
             ON CONFLICT (series_id, ts)
-            DO UPDATE SET value = EXCLUDED.value
+            DO UPDATE SET 
+              value = EXCLUDED.value,
+              metadata = EXCLUDED.metadata,
+              updated_at = now()
           `;
 
           const result = await client.query(query, params);

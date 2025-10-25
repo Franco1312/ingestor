@@ -48,6 +48,58 @@ export class BcraCambiariasClient extends BaseHttpClient {
     }
   }
 
+  async getUsdRange(params: {
+    from: string;
+    to: string;
+  }): Promise<Array<{ ts: Date; value: number }>> {
+    const { from, to } = params;
+
+    logger.info({
+      event: events.GET_SERIES_DATA,
+      msg: 'Fetching USD data from BCRA Cambiarias',
+      data: { from, to },
+    });
+
+    try {
+      const url = `/Cotizaciones/USD?fechaDesde=${from}&fechaHasta=${to}`;
+      const response = await this.axiosInstance.get(url);
+
+      const data = response.data as {
+        status: number;
+        results: Array<{
+          fecha: string;
+          detalle: Array<{
+            codigoMoneda: string;
+            tipoCotizacion: number;
+          }>;
+        }>;
+      };
+
+      const results = data.results.map(item => ({
+        ts: new Date(item.fecha),
+        value: item.detalle[0]?.tipoCotizacion || 0,
+      }));
+
+      logger.info({
+        event: events.GET_SERIES_DATA,
+        msg: 'Successfully fetched BCRA Cambiarias USD data',
+        data: { from, to, count: results.length },
+      });
+
+      return results;
+    } catch (error) {
+      logger.error({
+        event: events.GET_SERIES_DATA,
+        msg: 'Failed to fetch BCRA Cambiarias USD data',
+        err: error as Error,
+        data: { from, to },
+      });
+      throw new Error(
+        `Failed to fetch BCRA Cambiarias USD data: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
   async getSeriesData(params: {
     seriesId: string;
     from: string;
@@ -130,3 +182,5 @@ export class BcraCambiariasClient extends BaseHttpClient {
     }
   }
 }
+
+export const defaultBcraCambiariasClient = new BcraCambiariasClient();

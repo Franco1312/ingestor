@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { scheduler } from './infrastructure/sched/scheduler.js';
-import { logger } from './infrastructure/log/logger.js';
-import { config } from './infrastructure/config/index.js';
+import { scheduler } from '@/infrastructure/sched/scheduler.js';
+import { logger } from '@/infrastructure/log/logger.js';
+import { config } from '@/infrastructure/config/index.js';
 
 async function main(): Promise<void> {
   try {

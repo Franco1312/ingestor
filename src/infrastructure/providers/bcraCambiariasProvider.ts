@@ -5,7 +5,10 @@ import type {
   FetchRangeResult,
 } from '@/domain/providers.js';
 import type { SeriesPoint } from '@/domain/entities/index.js';
-import { BcraCambiariasClient } from '@/infrastructure/http/clients/bcraCambiariasClient.js';
+import {
+  BcraCambiariasClient,
+  defaultBcraCambiariasClient,
+} from '@/infrastructure/http/clients/bcraCambiariasClient.js';
 
 import { logger } from '@/infrastructure/log/logger.js';
 import { BCRA_MONETARIAS_PROVIDER as events } from '@/infrastructure/log/log-events.js';
@@ -14,11 +17,9 @@ import { DateService } from '@/domain/utils/dateService.js';
 export class BcraCambiariasProvider implements SeriesProvider {
   readonly name = 'BCRA_CAMBIARIAS';
 
-  private readonly bcraCambiariasClient: BcraCambiariasClient;
-
-  constructor() {
-    this.bcraCambiariasClient = new BcraCambiariasClient();
-  }
+  constructor(
+    private readonly bcraCambiariasClient: BcraCambiariasClient = defaultBcraCambiariasClient
+  ) {}
 
   async health(): Promise<ProviderHealth> {
     const startTime = DateService.now();
@@ -148,3 +149,5 @@ export class BcraCambiariasProvider implements SeriesProvider {
     return parsedValue;
   }
 }
+
+export const defaultBcraCambiariasProvider = new BcraCambiariasProvider();

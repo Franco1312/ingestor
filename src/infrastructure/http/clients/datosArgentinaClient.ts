@@ -9,6 +9,31 @@ export class DatosArgentinaClient extends BaseHttpClient {
     );
   }
 
+  async getSeriesRange(params: {
+    id: string;
+    from: string;
+    to: string;
+  }): Promise<Array<{ ts: Date; value: number }>> {
+    const { id, from, to } = params;
+
+    try {
+      const url = `/series?ids=${id}&start_date=${from}&end_date=${to}&format=json`;
+      const response = await this.axiosInstance.get(url);
+
+      const data = response.data as { data: Array<[string, number]> };
+      const results = data.data.map(([date, value]) => ({
+        ts: new Date(date),
+        value,
+      }));
+
+      return results;
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch Datos Argentina series range: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
   async getSeriesData(params: {
     seriesId: string;
     from: string;
