@@ -46,23 +46,15 @@ pnpm install
 # Start PostgreSQL
 docker-compose up -d postgres
 
-# Run discovery to map series
-NODE_ENV=local npm run discover
-
-# Run backfill for historical data
-NODE_ENV=local npm run backfill -- --series 1 --from 2024-01-01 --to 2024-03-01
-
-# Run daily update
-NODE_ENV=local npm run update
+# Run backfill to populate all series with last year of data
+NODE_ENV=local npm run backfill
 ```
 
 ### Available Scripts
 
 ```bash
 npm run dev          # Start development server
-npm run discover     # Map series to BCRA variables
-npm run update       # Daily update
-npm run backfill     # Historical data backfill
+npm run backfill     # Backfill historical data for all series
 npm run lint         # Run ESLint
 npm run format       # Format code with Prettier
 npm run build        # Build for production
@@ -114,14 +106,8 @@ pnpm install
 # Start PostgreSQL
 docker-compose up -d postgres
 
-# Run discovery to map series
-NODE_ENV=local npm run discover
-
-# Run backfill for historical data
-NODE_ENV=local npm run backfill -- --series 1 --from 2024-01-01 --to 2024-03-01
-
-# Run daily update
-NODE_ENV=local npm run update
+# Run backfill to populate all series with last year of data
+NODE_ENV=local npm run backfill
 ```
 
 ## 🚢 Deployment

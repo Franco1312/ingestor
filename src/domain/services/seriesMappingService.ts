@@ -1,50 +1,31 @@
-import type { ISeriesMappingRepository } from '@/domain/ports/seriesMappingRepository.js';
+import type {
+  ISeriesMappingRepository,
+  SeriesMapping,
+} from '@/domain/ports/seriesMappingRepository.js';
+import { defaultSeriesMappingRepository as defaultMappingRepository } from '@/infrastructure/db/seriesMappingRepo.js';
 
 export interface SeriesMappingService {
-  getInternalSeriesId(externalSeriesId: string, providerName: string): Promise<string | null>;
-  getExternalSeriesId(internalSeriesId: string, providerName: string): Promise<string | null>;
-  createMapping(
-    internalSeriesId: string,
-    externalSeriesId: string,
-    providerName: string
-  ): Promise<void>;
-  getAllMappingsForProvider(
-    providerName: string
-  ): Promise<import('../ports/seriesMappingRepository.js').SeriesMapping[]>;
+  getAllMappings(): Promise<SeriesMapping[]>;
+  getMappingsByProvider(provider: string): Promise<SeriesMapping[]>;
+  insertMapping(mapping: Omit<SeriesMapping, 'id'>): Promise<void>;
 }
 
 export class SeriesMappingServiceImpl implements SeriesMappingService {
-  constructor(private readonly mappingRepository: ISeriesMappingRepository) {}
+  constructor(
+    private readonly mappingRepository: ISeriesMappingRepository = defaultMappingRepository
+  ) {}
 
-  async getInternalSeriesId(
-    externalSeriesId: string,
-    providerName: string
-  ): Promise<string | null> {
-    return await this.mappingRepository.getInternalSeriesId(externalSeriesId, providerName);
+  async getAllMappings(): Promise<SeriesMapping[]> {
+    return await this.mappingRepository.getAllMappings();
   }
 
-  async getExternalSeriesId(
-    internalSeriesId: string,
-    providerName: string
-  ): Promise<string | null> {
-    return await this.mappingRepository.getExternalSeriesId(internalSeriesId, providerName);
+  async getMappingsByProvider(provider: string): Promise<SeriesMapping[]> {
+    return await this.mappingRepository.getMappingsByProvider(provider);
   }
 
-  async createMapping(
-    internalSeriesId: string,
-    externalSeriesId: string,
-    providerName: string
-  ): Promise<void> {
-    return await this.mappingRepository.createMapping(
-      internalSeriesId,
-      externalSeriesId,
-      providerName
-    );
-  }
-
-  async getAllMappingsForProvider(
-    providerName: string
-  ): Promise<import('../ports/seriesMappingRepository.js').SeriesMapping[]> {
-    return await this.mappingRepository.getAllMappingsForProvider(providerName);
+  async insertMapping(mapping: Omit<SeriesMapping, 'id'>): Promise<void> {
+    return await this.mappingRepository.insertMapping(mapping);
   }
 }
+
+export const defaultSeriesMappingService = new SeriesMappingServiceImpl();

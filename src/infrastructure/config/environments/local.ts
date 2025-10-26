@@ -26,7 +26,7 @@ export const localConfig: EnvironmentConfig = {
     },
   },
   database: {
-    url: 'postgresql://user:pass@localhost:5433/ingestor',
+    url: process.env.DATABASE_URL || '',
   },
   app: {
     timezone: 'America/Argentina/Buenos_Aires',

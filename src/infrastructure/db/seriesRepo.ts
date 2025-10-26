@@ -293,4 +293,4 @@ class SeriesRepository implements ISeriesRepository {
   }
 }
 
-export const seriesRepository = new SeriesRepository();
+export const defaultSeriesRepository = new SeriesRepository();

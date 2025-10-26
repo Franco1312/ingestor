@@ -1,19 +1,14 @@
 export interface SeriesMapping {
   id: number;
-  internalSeriesId: string;
-  externalSeriesId: string;
-  providerName: string;
-  createdAt: Date;
-  updatedAt: Date;
+  internal_series_id: string;
+  external_series_id: string;
+  provider_name: string;
+  keywords: string[];
+  description: string;
 }
 
 export interface ISeriesMappingRepository {
-  getInternalSeriesId(externalSeriesId: string, providerName: string): Promise<string | null>;
-  getExternalSeriesId(internalSeriesId: string, providerName: string): Promise<string | null>;
-  createMapping(
-    internalSeriesId: string,
-    externalSeriesId: string,
-    providerName: string
-  ): Promise<void>;
-  getAllMappingsForProvider(providerName: string): Promise<SeriesMapping[]>;
+  getAllMappings(): Promise<SeriesMapping[]>;
+  getMappingsByProvider(provider: string): Promise<SeriesMapping[]>;
+  insertMapping(mapping: Omit<SeriesMapping, 'id'>): Promise<void>;
 }

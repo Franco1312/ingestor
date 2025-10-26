@@ -37,16 +37,3 @@ export interface SeriesProvider {
     }>
   >;
 }
-
-export interface ProviderChainConfig {
-  primaryProvider: string;
-  fallbackProviders: string[];
-  timeout: number;
-  retries: number;
-}
-
-export interface ProviderChain {
-  fetchRange(params: FetchRangeParams): Promise<FetchRangeResult>;
-
-  getHealthStatus(): Promise<Record<string, ProviderHealth>>;
-}

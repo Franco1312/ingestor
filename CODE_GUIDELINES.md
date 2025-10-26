@@ -6,54 +6,33 @@ This document defines the coding standards, patterns, and architectural guidelin
 
 ## Core Principles
 
-### 1. **Clean Code Principles**
-
-- **Single Responsibility**: Each class/method has one reason to change
-- **DRY (Don't Repeat Yourself)**: Eliminate code duplication
-- **KISS (Keep It Simple, Stupid)**: Prefer simple solutions over complex ones
-- **YAGNI (You Aren't Gonna Need It)**: Don't add functionality until needed
-- **Composition over Inheritance**: Favor composition and dependency injection
-- **One Class Per File**: Never put multiple classes in the same file
-- **Modular Methods**: Break large functions into smaller, focused methods
-
-### 2. **Simplicity Over Complexity**
+### 1. **Simplicity Over Complexity**
 
 - Avoid over-engineering
 - Prefer direct functions over classes when possible
 - Eliminate unnecessary abstractions
 - Keep methods focused and single-purpose
-- Use early returns to reduce nesting
-- Prefer functional programming patterns (`map`, `filter`, `some`, `find`)
 
-### 3. **Consistent Logging**
+### 2. **Consistent Logging**
 
 - Use only essential logs: `INIT`, `FINISHED`, `ERROR`
 - Avoid verbose logging and intermediate steps
 - Include minimal but relevant data in logs
 - Use structured logging with `event`, `msg`, `data`, `err` fields
-- Never use `console.log` or `debugger` statements
 
-### 4. **Date Handling**
+### 3. **Date Handling**
 
 - Always use `DateService` for date operations
 - Never implement custom date parsing
 - Centralize date validation and formatting
 - Use `DateService.formatDate()`, `DateService.validateDateRange()`, etc.
 
-### 5. **Error Handling**
+### 4. **Error Handling**
 
 - Never instantiate `Error` objects solely for logging
 - Pass strings directly to logger when possible
 - Use early returns to reduce nesting
 - Handle errors at the appropriate level
-- Avoid `new Error()` for logging purposes
-
-### 6. **Code Comments**
-
-- **NO COMMENTS**: Do not add comments in the code
-- Code should be self-explanatory through clear naming and structure
-- If code needs explanation, refactor it to be more readable
-- Use descriptive variable and function names instead of comments
 
 ## Architecture Patterns
 

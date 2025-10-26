@@ -1,4 +1,4 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool, PoolClient, PoolConfig } from 'pg';
 import { logger } from '@/infrastructure/log/logger.js';
 import { config } from '@/infrastructure/config/index.js';
 import { DATABASE as events } from '@/infrastructure/log/log-events.js';
@@ -7,12 +7,19 @@ class DatabasePool {
   private pool: Pool;
 
   constructor() {
-    this.pool = new Pool({
+    const poolConfig: PoolConfig = {
       connectionString: config.database.url,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
-    });
+    };
+
+    // Enable SSL for RDS connections
+    if (config.database.url?.includes('rds.amazonaws.com')) {
+      poolConfig.ssl = { rejectUnauthorized: false };
+    }
+
+    this.pool = new Pool(poolConfig);
 
     this.pool.on('error', err => {
       logger.error({

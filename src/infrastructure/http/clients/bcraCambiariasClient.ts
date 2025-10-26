@@ -1,7 +1,7 @@
 import { BaseHttpClient } from '@/infrastructure/http/baseHttpClient.js';
 import { config } from '@/infrastructure/config/index.js';
 import { logger } from '@/infrastructure/log/logger.js';
-import { BCRA_CLIENT as events } from '@/infrastructure/log/log-events.js';
+import { BCRA_CAMBIARIAS_CLIENT as events } from '@/infrastructure/log/log-events.js';
 
 export class BcraCambiariasClient extends BaseHttpClient {
   constructor() {
@@ -17,134 +17,51 @@ export class BcraCambiariasClient extends BaseHttpClient {
     }
   }
 
-  async getAvailableSeries(): Promise<unknown[]> {
-    logger.info({
-      event: events.GET_AVAILABLE_SERIES,
-      msg: 'Fetching available series from BCRA Cambiarias',
-    });
-
-    try {
-      const response = await this.axiosInstance.get('/');
-
-      const responseData = response.data as Record<string, unknown>;
-      const results = (responseData.results as unknown[]) || [];
-
-      logger.info({
-        event: events.GET_AVAILABLE_SERIES,
-        msg: 'Successfully fetched BCRA Cambiarias series',
-        data: { count: results.length },
-      });
-
-      return results;
-    } catch (error) {
-      logger.error({
-        event: events.GET_AVAILABLE_SERIES,
-        msg: 'Failed to fetch BCRA Cambiarias series',
-        err: error as Error,
-      });
-      throw new Error(
-        `Failed to fetch BCRA Cambiarias series: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  async getUsdRange(params: {
-    from: string;
-    to: string;
-  }): Promise<Array<{ ts: Date; value: number }>> {
-    const { from, to } = params;
-
-    logger.info({
-      event: events.GET_SERIES_DATA,
-      msg: 'Fetching USD data from BCRA Cambiarias',
-      data: { from, to },
-    });
-
-    try {
-      const url = `/Cotizaciones/USD?fechaDesde=${from}&fechaHasta=${to}`;
-      const response = await this.axiosInstance.get(url);
-
-      const data = response.data as {
-        status: number;
-        results: Array<{
-          fecha: string;
-          detalle: Array<{
-            codigoMoneda: string;
-            tipoCotizacion: number;
-          }>;
-        }>;
-      };
-
-      const results = data.results.map(item => ({
-        ts: new Date(item.fecha),
-        value: item.detalle[0]?.tipoCotizacion || 0,
-      }));
-
-      logger.info({
-        event: events.GET_SERIES_DATA,
-        msg: 'Successfully fetched BCRA Cambiarias USD data',
-        data: { from, to, count: results.length },
-      });
-
-      return results;
-    } catch (error) {
-      logger.error({
-        event: events.GET_SERIES_DATA,
-        msg: 'Failed to fetch BCRA Cambiarias USD data',
-        err: error as Error,
-        data: { from, to },
-      });
-      throw new Error(
-        `Failed to fetch BCRA Cambiarias USD data: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  async getSeriesData(params: {
-    seriesId: string;
-    from: string;
-    to?: string | undefined;
-    limit?: number | undefined;
-    offset?: number | undefined;
+  async getExchangeRate(params: {
+    monedaISO: string;
+    fechaDesde: string;
+    fechaHasta?: string | undefined;
   }): Promise<unknown> {
-    const { seriesId, from, to, limit, offset } = params;
+    const { monedaISO, fechaDesde, fechaHasta } = params;
 
     logger.info({
-      event: events.GET_SERIES_DATA,
-      msg: 'Fetching series data from BCRA Cambiarias',
-      data: { seriesId, from, to, limit, offset },
+      event: events.GET_EXCHANGE_RATE,
+      msg: 'Fetching exchange rate from BCRA Cambiarias',
+      data: { monedaISO, fechaDesde, fechaHasta },
     });
 
     try {
-      let url = `/${seriesId}?desde=${from}`;
+      let url = `/Cotizaciones/${monedaISO}?fechadesde=${fechaDesde}`;
 
-      if (to) url += `&hasta=${to}`;
-      if (limit) url += `&limit=${limit}`;
-      if (offset) url += `&offset=${offset}`;
+      if (fechaHasta) url += `&fechahasta=${fechaHasta}`;
 
       const response = await this.axiosInstance.get(url);
 
       logger.info({
-        event: events.GET_SERIES_DATA,
-        msg: 'Successfully fetched BCRA Cambiarias series data',
-        data: { seriesId, url },
+        event: events.GET_EXCHANGE_RATE,
+        msg: 'Successfully fetched BCRA Cambiarias exchange rate',
+        data: { monedaISO, url },
       });
 
       return response.data;
     } catch (error) {
       logger.error({
-        event: events.GET_SERIES_DATA,
-        msg: 'Failed to fetch BCRA Cambiarias series data',
+        event: events.GET_EXCHANGE_RATE,
+        msg: 'Failed to fetch BCRA Cambiarias exchange rate',
         err: error as Error,
-        data: { seriesId },
+        data: { monedaISO },
       });
       throw new Error(
-        `Failed to fetch BCRA Cambiarias series data: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to fetch exchange rate: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
 
-  async healthCheck(): Promise<{ isHealthy: boolean; error?: string; responseTime?: number }> {
+  async healthCheck(): Promise<{
+    isHealthy: boolean;
+    error?: string;
+    responseTime?: number;
+  }> {
     const startTime = Date.now();
 
     logger.info({
@@ -153,12 +70,12 @@ export class BcraCambiariasClient extends BaseHttpClient {
     });
 
     try {
-      await this.axiosInstance.get('/');
+      await this.axiosInstance.get('/Cotizaciones/USD');
       const responseTime = Date.now() - startTime;
 
       logger.info({
         event: events.HEALTH_CHECK,
-        msg: 'BCRA Cambiarias API health check successful',
+        msg: 'BCRA Cambiarias health check successful',
         data: { responseTime },
       });
 
@@ -169,7 +86,7 @@ export class BcraCambiariasClient extends BaseHttpClient {
 
       logger.error({
         event: events.HEALTH_CHECK,
-        msg: 'BCRA Cambiarias API health check failed',
+        msg: 'BCRA Cambiarias health check failed',
         err: error as Error,
         data: { responseTime },
       });

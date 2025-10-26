@@ -1,29 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { BackfillSeriesUseCase } from '@/application/usecases/backfillSeries.js';
-import { seriesRepository } from '@/infrastructure/db/seriesRepo.js';
-import {
-  BcraMonetariasProvider,
-  BcraCambiariasProvider,
-  BcraOficialProvider,
-  DolarApiProvider,
-  DatosSeriesProvider,
-  ProviderChain,
-} from '@/infrastructure/providers/index.js';
-import { SeriesMappingServiceImpl } from '@/domain/services/seriesMappingService.js';
-import { seriesMappingRepository } from '@/infrastructure/db/seriesMappingRepo.js';
+import { defaultBackfillBcraSeriesUseCase } from '@/application/usecases/backfill-bcra-series.use-case.js';
+import { defaultSeriesRepository } from '@/infrastructure/db/seriesRepo.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { CLI as events } from '@/infrastructure/log/log-events.js';
-import { DateService } from '@/domain/utils/dateService.js';
-
-interface BackfillOptions {
-  series: string;
-  from: string;
-  to?: string;
-  force?: boolean;
-  verbose?: boolean;
-}
 
 interface BackfillResult {
   seriesId: string;
@@ -34,68 +15,25 @@ interface BackfillResult {
 }
 
 class BackfillCLI {
-  private backfillUseCase!: BackfillSeriesUseCase;
+  private readonly backfillUseCase = defaultBackfillBcraSeriesUseCase;
+  constructor() {}
 
-  constructor() {
-    this.initializeProviders();
-  }
-
-  private initializeProviders(): void {
-    const bcraMonetariasProvider = new BcraMonetariasProvider();
-    const bcraCambiariasProvider = new BcraCambiariasProvider();
-    const bcraOficialProvider = new BcraOficialProvider();
-    const dolarApiProvider = new DolarApiProvider();
-    const datosSeriesProvider = new DatosSeriesProvider();
-
-    const providerChain = new ProviderChain([
-      bcraMonetariasProvider,
-      bcraCambiariasProvider,
-      bcraOficialProvider,
-      dolarApiProvider,
-      datosSeriesProvider,
-    ]);
-
-    const mappingService = new SeriesMappingServiceImpl(seriesMappingRepository);
-    this.backfillUseCase = new BackfillSeriesUseCase(
-      seriesRepository,
-      providerChain,
-      mappingService
-    );
-  }
-
-  private validateDateFormats(options: BackfillOptions): void {
-    const validationResult = DateService.validateDateRange(options.from, options.to);
-    if (!validationResult.isValid) {
-      logger.error({
-        event: events.BACKFILL,
-        msg: 'Date validation failed',
-        err: validationResult.error || 'Invalid date format',
-      });
-      process.exit(1);
-    }
-
-    const rangeValidation = DateService.validateDateRangeLogic(options.from, options.to);
-    if (!rangeValidation.isValid) {
-      logger.error({
-        event: events.BACKFILL,
-        msg: 'Date range validation failed',
-        err: rangeValidation.error || 'Invalid date range',
-      });
-      process.exit(1);
-    }
-  }
-
-  private buildBackfillParams(options: BackfillOptions) {
-    return {
-      seriesId: options.series,
-      fromDate: options.from,
-      ...(options.to && { toDate: options.to }),
+  private async executeBackfill(
+    seriesId: string,
+    fromDate: string,
+    toDate: string
+  ): Promise<BackfillResult> {
+    const backfillParams = {
+      seriesId,
+      fromDate,
+      toDate,
     };
+    return await this.backfillUseCase.execute(backfillParams);
   }
 
-  private async executeBackfill(options: BackfillOptions): Promise<BackfillResult> {
-    const backfillParams = this.buildBackfillParams(options);
-    return await this.backfillUseCase.execute(backfillParams);
+  private async getAllSeriesIds(): Promise<string[]> {
+    const allSeries = await defaultSeriesRepository.getAllSeries();
+    return allSeries.map(s => s.id);
   }
 
   private logBackfillResults(result: BackfillResult): void {
@@ -148,29 +86,91 @@ class BackfillCLI {
     process.exit(1);
   }
 
-  async run(options: BackfillOptions): Promise<void> {
+  private getDefaultDateRange(): { from: string; to: string } {
+    const to = new Date();
+    const from = new Date();
+    from.setFullYear(from.getFullYear() - 1);
+
+    const fromStr = from.toISOString().split('T')[0];
+    const toStr = to.toISOString().split('T')[0];
+
+    if (!fromStr || !toStr) {
+      throw new Error('Failed to generate date range');
+    }
+
+    return {
+      from: fromStr,
+      to: toStr,
+    };
+  }
+
+  async run(): Promise<void> {
     try {
+      const { from, to } = this.getDefaultDateRange();
+
+      const seriesToProcess = await this.getAllSeriesIds();
+
+      if (seriesToProcess.length === 0) {
+        logger.error({
+          event: events.BACKFILL,
+          msg: 'No series found in database',
+        });
+        process.exit(1);
+      }
+
       logger.info({
         event: events.BACKFILL,
-        msg: 'Starting backfill operation',
+        msg: 'Starting backfill operation (last year)',
         data: {
-          seriesId: options.series,
-          startDate: options.from,
-          endDate: options.to,
+          seriesCount: seriesToProcess.length,
+          startDate: from,
+          endDate: to,
         },
       });
 
-      this.validateDateFormats(options);
-      const result = await this.executeBackfill(options);
-      this.logBackfillResults(result);
+      let successCount = 0;
+      let failureCount = 0;
 
-      if (!result.success) {
-        this.handleBackfillFailure(result.error || 'Unknown error');
-        return;
+      for (const seriesId of seriesToProcess) {
+        logger.info({
+          event: events.BACKFILL,
+          msg: 'Processing series',
+          data: { seriesId },
+        });
+
+        const result = await this.executeBackfill(seriesId, from, to);
+        this.logBackfillResults(result);
+
+        if (result.success) {
+          successCount++;
+          await this.getAndLogSeriesStats(seriesId);
+        } else {
+          failureCount++;
+          logger.error({
+            event: events.BACKFILL,
+            msg: 'Backfill failed for series',
+            err: result.error || 'Unknown error',
+            data: { seriesId },
+          });
+        }
       }
 
-      await this.getAndLogSeriesStats(options.series);
-      this.handleBackfillSuccess();
+      // Summary
+      logger.info({
+        event: events.BACKFILL,
+        msg: 'Backfill completed',
+        data: {
+          total: seriesToProcess.length,
+          success: successCount,
+          failed: failureCount,
+        },
+      });
+
+      if (failureCount > 0) {
+        process.exit(1);
+      } else {
+        this.handleBackfillSuccess();
+      }
     } catch (error) {
       logger.error({
         event: events.BACKFILL,
@@ -186,16 +186,11 @@ const program = new Command();
 
 program
   .name('backfill')
-  .description('Backfill time series data for a specific date range')
+  .description('Backfill time series data for all available series (last year)')
   .version('1.0.0')
-  .requiredOption('-s, --series <seriesId>', 'Series ID to backfill')
-  .requiredOption('-f, --from <startDate>', 'Start date (YYYY-MM-DD)')
-  .option('-t, --to <endDate>', 'End date (YYYY-MM-DD, defaults to today)')
-  .option('--force', 'Force overwrite existing data in the date range')
-  .option('-v, --verbose', 'Enable verbose logging')
-  .action(async (options: BackfillOptions) => {
+  .action(async () => {
     const backfillCLI = new BackfillCLI();
-    await backfillCLI.run(options);
+    await backfillCLI.run();
   });
 
 program.parse();

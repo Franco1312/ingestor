@@ -7,6 +7,7 @@ export interface ExternalServiceConfig {
 
 export interface DatabaseConfig {
   url: string;
+  ssl?: boolean;
 }
 
 export interface HttpConfig {
