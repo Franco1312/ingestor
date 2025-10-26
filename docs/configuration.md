@@ -9,107 +9,103 @@
 DATABASE_URL=postgresql://user:pass@localhost:5433/ingestor
 ```
 
-### External Services
+### BCRA APIs Configuration
 
 ```bash
-# BCRA APIs
-BCRA_V3_BASE=https://api.bcra.gob.ar
-BCRA_CAMBIARIAS_BASE=https://api.bcra.gob.ar/estadisticas/v3.0/Cambiarias
+# BCRA Monetarias API (optional, has defaults)
+BCRA_CA_BUNDLE_PATH=/path/to/ca-bundle.pem
 
-# DolarApi
-DOLARAPI_BASE=https://api.dolarapi.com/v1/dolares
-
-# Datos Argentina
-DATOS_SERIES_BASE=https://apis.datos.gob.ar/series/api
+# BCRA Cambiarias API (optional, has defaults)
+BCRA_CA_BUNDLE_PATH=/path/to/ca-bundle.pem
 ```
 
-### Provider Configuration
+### Application Configuration
 
 ```bash
-# Primary and fallback providers
-PRIMARY_PROVIDER=BCRA_MONETARIAS
-FALLBACK_PROVIDER=DATOS_SERIES
-
-# Provider chain configuration
-PROVIDER_CHAIN_ENABLED=true
-```
-
-### HTTP Configuration
-
-```bash
-# Request timeouts and retries
-HTTP_TIMEOUT_MS=20000
-HTTP_RETRIES=3
-HTTP_BACKOFF_BASE_MS=250
-HTTP_BACKOFF_FACTOR=2
-HTTP_BACKOFF_MAX_MS=8000
-```
-
-### Application Settings
-
-```bash
-# Timezone configuration
-APP_TIMEZONE=America/Argentina/Buenos_Aires
-
-# Logging level
+# Logging level (optional, defaults to 'info' for local, 'warn' for production)
 LOG_LEVEL=info
-```
-
-### Circuit Breaker Configuration
-
-```bash
-# Circuit breaker settings
-BREAKER_FAILURE_THRESHOLD=5
-BREAKER_WINDOW_MS=600000
-BREAKER_OPEN_MS=900000
-```
-
-### TLS Configuration (Production)
-
-```bash
-# CA bundle for production
-BCRA_CA_BUNDLE_PATH=/app/certs/bcra-chain.pem
 ```
 
 ## Configuration Files
 
+The configuration is loaded based on the `NODE_ENV` environment variable:
+
+- **`local`**: Development environment with verbose logging
+- **`staging`**: Staging environment with info-level logging
+- **`production`**: Production environment with warn-level logging
+
 ### Local Environment (`src/infrastructure/config/environments/local.ts`)
 
 ```typescript
-export const localConfig = {
-  database: {
-    url: process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5433/ingestor'
+export const localConfig: EnvironmentConfig = {
+  externalServices: {
+    bcra: {
+      baseUrl: 'https://api.bcra.gob.ar',
+      timeout: 30000,
+      caBundlePath: process.env.BCRA_CA_BUNDLE_PATH,
+    },
+    bcraCambiarias: {
+      baseUrl: 'https://api.bcra.gob.ar/estadisticascambiarias/v1.0',
+      timeout: 30000,
+      caBundlePath: process.env.BCRA_CA_BUNDLE_PATH,
+    },
   },
+  database: {
+    url: process.env.DATABASE_URL || '',
+  },
+  app: {
+    logLevel: 'info',
+  },
+};
+```
+
+### Staging Environment (`src/infrastructure/config/environments/staging.ts`)
+
+```typescript
+export const stagingConfig: EnvironmentConfig = {
   externalServices: {
     bcra: {
       baseUrl: 'https://api.bcra.gob.ar',
       timeout: 20000,
-      retries: 3
+      caBundlePath: process.env.BCRA_CA_BUNDLE_PATH,
     },
-    dolarApi: {
-      baseUrl: 'https://api.dolarapi.com/v1/dolares',
-      timeout: 10000,
-      retries: 2
-    }
-  }
+    bcraCambiarias: {
+      baseUrl: 'https://api.bcra.gob.ar/estadisticascambiarias/v1.0',
+      timeout: 20000,
+      caBundlePath: process.env.BCRA_CA_BUNDLE_PATH,
+    },
+  },
+  database: {
+    url: process.env.DATABASE_URL || '',
+  },
+  app: {
+    logLevel: 'info',
+  },
 };
 ```
 
 ### Production Environment (`src/infrastructure/config/environments/production.ts`)
 
 ```typescript
-export const productionConfig = {
-  database: {
-    url: process.env.DATABASE_URL
-  },
+export const productionConfig: EnvironmentConfig = {
   externalServices: {
     bcra: {
       baseUrl: 'https://api.bcra.gob.ar',
-      timeout: 30000,
-      retries: 5,
-      caBundle: process.env.BCRA_CA_BUNDLE_PATH
-    }
-  }
+      timeout: 20000,
+      caBundlePath: process.env.BCRA_CA_BUNDLE_PATH,
+    },
+    bcraCambiarias: {
+      baseUrl: 'https://api.bcra.gob.ar/estadisticascambiarias/v1.0',
+      timeout: 20000,
+      caBundlePath: process.env.BCRA_CA_BUNDLE_PATH,
+    },
+  },
+  database: {
+    url: process.env.DATABASE_URL || '',
+  },
+  app: {
+    logLevel: 'warn',
+  },
 };
 ```
 
@@ -120,16 +116,15 @@ export const productionConfig = {
 The service maintains a catalog of series in the `series` table:
 
 ```sql
--- BCRA Series
+-- BCRA Monetarias Series
 INSERT INTO series (id, source, frequency, unit, metadata) VALUES
 ('1', 'bcra', 'daily', 'USD', '{"bcra_idVariable": 1, "description": "Reservas Internacionales"}'),
 ('15', 'bcra', 'daily', 'ARS', '{"bcra_idVariable": 15, "description": "Base Monetaria"}');
 
--- DolarApi Series
+-- BCRA Cambiarias Series
 INSERT INTO series (id, source, frequency, unit, metadata) VALUES
-('dolarapi.mep_ars', 'dolarapi', 'daily', 'ARS/USD', '{"description": "Dólar MEP"}'),
-('dolarapi.ccl_ars', 'dolarapi', 'daily', 'ARS/USD', '{"description": "Dólar CCL"}'),
-('dolarapi.blue_ars', 'dolarapi', 'daily', 'ARS/USD', '{"description": "Dólar Blue"}');
+('bcra.cambiarias.usd', 'bcra', 'daily', 'ARS', '{"moneda": "USD", "description": "Cotización Dólar USD"}'),
+('bcra.cambiarias.eur', 'bcra', 'daily', 'ARS', '{"moneda": "EUR", "description": "Cotización Euro"}');
 ```
 
 ### Series Mappings
@@ -139,8 +134,9 @@ External to internal ID mappings are stored in the `series_mappings` table:
 ```sql
 INSERT INTO series_mappings (internal_series_id, external_series_id, provider_name) VALUES
 ('1', '1', 'BCRA_MONETARIAS'),
-('bcra.leliq_total_ars', '53', 'BCRA_MONETARIAS'),
-('dolarapi.mep_ars', 'mep', 'DOLARAPI');
+('15', '15', 'BCRA_MONETARIAS'),
+('bcra.cambiarias.usd', 'USD', 'BCRA_CAMBIARIAS'),
+('bcra.cambiarias.eur', 'EUR', 'BCRA_CAMBIARIAS');
 ```
 
 ## Docker Configuration
@@ -152,7 +148,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: timescale/timescaledb:latest-pg16
+    image: postgres:16
     environment:
       POSTGRES_DB: ingestor
       POSTGRES_USER: user
@@ -173,21 +169,7 @@ services:
         condition: service_healthy
 ```
 
-### Environment-specific Configuration
-
-- **Local**: Uses `NODE_ENV=local` for development settings
-- **Production**: Uses `NODE_ENV=production` for production settings
-- **Staging**: Uses `NODE_ENV=staging` for staging settings
-
 ## Security Considerations
-
-### TLS Configuration
-
-For production deployments:
-1. Configure proper CA bundles for external APIs
-2. Use environment variables for sensitive configuration
-3. Implement proper authentication and authorization
-4. Regular security updates and monitoring
 
 ### Database Security
 
@@ -195,3 +177,10 @@ For production deployments:
 2. Implement regular backup strategies
 3. Monitor database performance and access
 4. Use connection pooling for efficiency
+
+### Production Deployment
+
+1. Configure proper environment variables
+2. Use secure database connections
+3. Implement monitoring and alerting
+4. Regular security updates

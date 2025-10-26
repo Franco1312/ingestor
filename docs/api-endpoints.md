@@ -4,7 +4,7 @@
 
 This document describes the external APIs integrated with the Ingestor service.
 
-## BCRA Monetarias v3 API
+## BCRA Monetarias API
 
 **Base URL**: `https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias`
 
@@ -64,28 +64,69 @@ GET https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias/1?desde=2024-01-01&hast
 - **`limit`**: Page size (default: 1000)
 - **`offset`**: Page offset for pagination
 
-## BCRA Cambiarias v3 API
+## BCRA Cambiarias API
 
-**Base URL**: `https://api.bcra.gob.ar/estadisticas/v3.0/Cambiarias`
+**Base URL**: `https://api.bcra.gob.ar/estadisticascambiarias/v1.0`
 
-Exchange rate data from Argentina's Central Bank.
+### Get Available Currencies
 
-## DolarApi
+```http
+GET https://api.bcra.gob.ar/estadisticascambiarias/v1.0/Maestros/Divisas
+```
 
-**Base URL**: `https://api.dolarapi.com/v1/dolares`
+**Response**:
+```json
+{
+  "status": 200,
+  "results": [
+    {
+      "codigo": "USD",
+      "denominacion": "DÓLAR"
+    },
+    {
+      "codigo": "EUR",
+      "denominacion": "EURO"
+    }
+  ]
+}
+```
 
-Financial FX rates including MEP, CCL, and Blue dollar.
+### Get Exchange Rate Data
 
-## INDEC via Datos Argentina
+```http
+GET https://api.bcra.gob.ar/estadisticascambiarias/v1.0/Datos/Divisas/{codigo}/series/{serie}/latest?limit=100
+```
 
-**Base URL**: `https://apis.datos.gob.ar/series/api`
+**Parameters**:
+- **`codigo`**: Currency code (e.g., USD, EUR)
+- **`serie`**: Series identifier (e.g., 200)
+- **`limit`**: Number of records to retrieve
 
-Economic indicators from Argentina's National Statistics Institute.
+**Response**:
+```json
+{
+  "status": 200,
+  "results": [
+    {
+      "fecha": "2024-10-26",
+      "valor": 950.0
+    }
+  ]
+}
+```
 
 ## Error Handling
 
 All APIs implement:
-- **Retry Logic**: Exponential backoff with jitter
-- **Circuit Breaker**: Automatic failover on repeated failures
-- **Timeout Configuration**: Configurable request timeouts
+- **Timeout Configuration**: 30s for local, 20s for production
 - **Health Checks**: Regular API availability monitoring
+- **SSL/TLS**: Secure connections with optional CA bundle
+
+## Rate Limits
+
+- **BCRA Monetarias**: No official rate limit specified
+- **BCRA Cambiarias**: No official rate limit specified
+
+## Authentication
+
+None required. All APIs are publicly accessible.

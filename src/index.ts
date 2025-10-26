@@ -9,19 +9,13 @@ async function main(): Promise<void> {
       event: 'MAIN.START',
       msg: 'Ingestor CLI available',
       data: {
-        timezone: config.app.timezone,
         logLevel: config.app.logLevel,
-        seriesWhitelist: config.app.seriesWhitelist,
-        primaryProvider: config.app.providers.primary,
-        fallbackProvider: config.app.providers.fallback,
-        httpTimeout: config.app.http.timeout,
-        circuitBreakerThreshold: config.app.circuitBreaker.failureThreshold,
       },
     });
 
     logger.info({
       event: 'MAIN.READY',
-      msg: 'Ingestor CLI is ready. Use command: npm run backfill',
+      msg: 'Ingestor CLI is ready. Use commands: npm run populate-series, npm run backfill, npm run backfill-cambiarias',
     });
   } catch (error) {
     logger.error({

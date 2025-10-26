@@ -1,6 +1,6 @@
 # 🏦 Ingestor - Argentina Economic Data Service
 
-> **Production-grade time-series ingestion service** for Argentina's official economic data from BCRA (Central Bank) and other government sources.
+> **Production-grade time-series ingestion service** for Argentina's official economic data from BCRA (Central Bank).
 
 ## 📋 Table of Contents
 
@@ -12,18 +12,17 @@
 
 ## 🎯 Overview
 
-The **Ingestor** is a robust data ingestion service designed to collect, normalize, and store Argentina's official economic time-series data from multiple sources including BCRA, DolarApi, and INDEC.
+The **Ingestor** is a robust data ingestion service designed to collect, normalize, and store Argentina's official economic time-series data from BCRA (Central Bank of Argentina).
 
 ### Key Features
 
-- ✅ **Multi-source data ingestion** from BCRA, DolarApi, and INDEC
-- ✅ **Intelligent provider routing** based on series type
+- ✅ **BCRA Monetarias & Cambiarias APIs** integration
 - ✅ **Series mapping system** for external-to-internal ID resolution
 - ✅ **Idempotent upserts** preventing duplicate data
-- ✅ **Automatic failover** between data providers
-- ✅ **Dockerized deployment** with PostgreSQL + TimescaleDB
+- ✅ **Dockerized deployment** with PostgreSQL
 - ✅ **CLI tools** for manual operations and debugging
 - ✅ **Clean Architecture** with domain-driven design
+- ✅ **Structured logging** with JSON format
 
 ## 🚀 Quick Start
 
@@ -31,7 +30,7 @@ The **Ingestor** is a robust data ingestion service designed to collect, normali
 
 - Node.js 20+
 - Docker & Docker Compose
-- PostgreSQL 16 with TimescaleDB
+- PostgreSQL 16
 
 ### Setup
 
@@ -41,23 +40,26 @@ git clone <repository-url>
 cd ingestor
 
 # Install dependencies
-pnpm install
+npm install
 
 # Start PostgreSQL
 docker-compose up -d postgres
 
-# Run backfill to populate all series with last year of data
-NODE_ENV=local npm run backfill
+# Wait for database to be ready, then run:
+npm run populate-series
+npm run backfill
+npm run backfill-cambiarias
 ```
 
 ### Available Scripts
 
 ```bash
-npm run dev          # Start development server
-npm run backfill     # Backfill historical data for all series
-npm run lint         # Run ESLint
-npm run format       # Format code with Prettier
-npm run build        # Build for production
+npm run populate-series    # Populate series catalog from BCRA APIs
+npm run backfill           # Backfill BCRA Monetarias data (last year)
+npm run backfill-cambiarias # Backfill BCRA Cambiarias exchange rates (last month)
+npm run lint              # Run ESLint
+npm run format            # Format code with Prettier
+npm run build             # Build for production
 ```
 
 ## 📚 Documentation
@@ -91,7 +93,7 @@ The documentation is designed for:
 
 - Node.js 20+
 - Docker & Docker Compose
-- PostgreSQL 16 with TimescaleDB
+- PostgreSQL 16
 
 ### Setup
 
@@ -101,13 +103,15 @@ git clone <repository-url>
 cd ingestor
 
 # Install dependencies
-pnpm install
+npm install
 
 # Start PostgreSQL
 docker-compose up -d postgres
 
-# Run backfill to populate all series with last year of data
-NODE_ENV=local npm run backfill
+# Wait for database to be ready, then run:
+npm run populate-series
+npm run backfill
+npm run backfill-cambiarias
 ```
 
 ## 🚢 Deployment
@@ -127,11 +131,9 @@ docker-compose up -d --scale ingestor=3
 
 ### Production Considerations
 
-1. **TLS Configuration**: Configure proper CA bundles for production
-2. **Database Backup**: Implement regular backup strategy
-3. **Monitoring**: Set up health checks and alerting
-4. **Scaling**: Configure load balancing for multiple instances
-5. **Security**: Use proper authentication and authorization
+1. **Database Backup**: Implement regular backup strategy
+2. **Monitoring**: Set up health checks and alerting
+3. **Security**: Use proper authentication and authorization
 
 ## 🤝 Contributing
 
