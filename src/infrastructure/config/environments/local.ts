@@ -1,4 +1,7 @@
+import dotenv from 'dotenv';
 import { EnvironmentConfig } from '@/infrastructure/config/types';
+
+dotenv.config();
 
 export const localConfig: EnvironmentConfig = {
   externalServices: {

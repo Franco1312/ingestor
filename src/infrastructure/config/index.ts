@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { localConfig } from '@/infrastructure/config/environments/local.js';
 import { stagingConfig } from '@/infrastructure/config/environments/staging.js';
 import { productionConfig } from '@/infrastructure/config/environments/production.js';

@@ -2,6 +2,10 @@ import { BaseHttpClient } from '@/infrastructure/http/baseHttpClient.js';
 import { config } from '@/infrastructure/config/index.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { BCRA_CAMBIARIAS_CLIENT as events } from '@/infrastructure/log/log-events.js';
+import type {
+  CambiariasMonedasResponse,
+  CambiariasExchangeRateResponse,
+} from './types/bcraCambiariasTypes.js';
 
 export class BcraCambiariasClient extends BaseHttpClient {
   constructor() {
@@ -17,11 +21,38 @@ export class BcraCambiariasClient extends BaseHttpClient {
     }
   }
 
+  async getAvailableMonedas(): Promise<CambiariasMonedasResponse> {
+    logger.info({
+      event: events.GET_EXCHANGE_RATE,
+      msg: 'Fetching available monedas from BCRA Cambiarias',
+    });
+
+    try {
+      const response = await this.axiosInstance.get<CambiariasMonedasResponse>('/Maestros/Divisas');
+
+      logger.info({
+        event: events.GET_EXCHANGE_RATE,
+        msg: 'Successfully fetched BCRA Cambiarias monedas',
+      });
+
+      return response.data;
+    } catch (error) {
+      logger.error({
+        event: events.GET_EXCHANGE_RATE,
+        msg: 'Failed to fetch BCRA Cambiarias monedas',
+        err: error as Error,
+      });
+      throw new Error(
+        `Failed to fetch monedas: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
   async getExchangeRate(params: {
     monedaISO: string;
     fechaDesde: string;
     fechaHasta?: string | undefined;
-  }): Promise<unknown> {
+  }): Promise<CambiariasExchangeRateResponse> {
     const { monedaISO, fechaDesde, fechaHasta } = params;
 
     logger.info({
@@ -35,7 +66,7 @@ export class BcraCambiariasClient extends BaseHttpClient {
 
       if (fechaHasta) url += `&fechahasta=${fechaHasta}`;
 
-      const response = await this.axiosInstance.get(url);
+      const response = await this.axiosInstance.get<CambiariasExchangeRateResponse>(url);
 
       logger.info({
         event: events.GET_EXCHANGE_RATE,

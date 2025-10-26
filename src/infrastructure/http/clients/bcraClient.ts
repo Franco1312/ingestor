@@ -2,6 +2,11 @@ import { BaseHttpClient } from '@/infrastructure/http/baseHttpClient.js';
 import { config } from '@/infrastructure/config/index.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { BCRA_CLIENT as events } from '@/infrastructure/log/log-events.js';
+import type {
+  BcraAvailableSeriesResponse,
+  BcraSeriesDataResponse,
+  BcraVariable,
+} from './types/bcraTypes.js';
 
 export class BcraClient extends BaseHttpClient {
   constructor() {
@@ -14,17 +19,18 @@ export class BcraClient extends BaseHttpClient {
     }
   }
 
-  async getAvailableSeries(): Promise<unknown[]> {
+  async getAvailableSeries(): Promise<BcraVariable[]> {
     logger.info({
       event: events.GET_AVAILABLE_SERIES,
       msg: 'Fetching available series from BCRA',
     });
 
     try {
-      const response = await this.axiosInstance.get('/estadisticas/v3.0/Monetarias');
+      const response = await this.axiosInstance.get<BcraAvailableSeriesResponse>(
+        '/estadisticas/v3.0/Monetarias'
+      );
 
-      const responseData = response.data as Record<string, unknown>;
-      const results = (responseData.results as unknown[]) || [];
+      const results = response.data.results || [];
 
       logger.info({
         event: events.GET_AVAILABLE_SERIES,
@@ -51,7 +57,7 @@ export class BcraClient extends BaseHttpClient {
     to?: string | undefined;
     limit?: number | undefined;
     offset?: number | undefined;
-  }): Promise<unknown> {
+  }): Promise<BcraSeriesDataResponse> {
     const { seriesId, from, to, limit, offset } = params;
 
     logger.info({
@@ -67,7 +73,7 @@ export class BcraClient extends BaseHttpClient {
       if (limit) url += `&limit=${limit}`;
       if (offset) url += `&offset=${offset}`;
 
-      const response = await this.axiosInstance.get(url);
+      const response = await this.axiosInstance.get<BcraSeriesDataResponse>(url);
 
       logger.info({
         event: events.GET_SERIES_DATA,

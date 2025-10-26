@@ -2,6 +2,7 @@
 
 import { Command } from 'commander';
 import { defaultBackfillBcraCambiariasUseCase } from '@/application/usecases/backfill-bcra-cambiarias.use-case.js';
+import { defaultSeriesMappingService } from '@/domain/services/seriesMappingService.js';
 import { logger } from '@/infrastructure/log/logger.js';
 import { CLI as events } from '@/infrastructure/log/log-events.js';
 
@@ -15,6 +16,7 @@ interface BackfillResult {
 
 class BackfillCambiariasCLI {
   private readonly backfillUseCase = defaultBackfillBcraCambiariasUseCase;
+  private readonly mappingService = defaultSeriesMappingService;
 
   constructor() {}
 
@@ -104,28 +106,50 @@ class BackfillCambiariasCLI {
 
     program
       .name('backfill-cambiarias')
-      .description('Backfill BCRA Cambiarias exchange rate data for the last month')
-      .option('-s, --series-id <seriesId>', 'Series ID to backfill', 'bcra.usd_oficial_ars')
-      .action(async options => {
+      .description('Backfill all BCRA Cambiarias exchange rate data for the last month')
+      .action(async () => {
         try {
           const { from, to } = this.getDefaultDateRange();
+          const mappings = await this.mappingService.getMappingsByProvider('BCRA_CAMBIARIAS');
+          const seriesToProcess = mappings;
+
+          if (seriesToProcess.length === 0) {
+            logger.error({
+              event: events.BACKFILL,
+              msg: 'No series found to backfill',
+              err: 'No mappings available',
+            });
+            process.exit(1);
+          }
 
           logger.info({
             event: events.BACKFILL,
-            msg: 'Starting BCRA Cambiarias backfill',
-            data: { seriesId: options.seriesId, from, to },
+            msg: 'Starting BCRA Cambiarias backfill for all series',
+            data: { count: seriesToProcess.length, from, to },
           });
 
-          const result = await this.executeBackfill(options.seriesId, from, to);
+          let successCount = 0;
+          let failCount = 0;
 
-          this.logBackfillResults(result);
-          await this.getAndLogSeriesStats(options.seriesId);
+          for (const mapping of seriesToProcess) {
+            const result = await this.executeBackfill(mapping.internal_series_id, from, to);
+            this.logBackfillResults(result);
+            await this.getAndLogSeriesStats(mapping.internal_series_id);
 
-          if (result.success) {
-            this.handleBackfillSuccess();
-          } else {
-            this.handleBackfillFailure(result.error || 'Unknown error');
+            if (result.success) {
+              successCount++;
+            } else {
+              failCount++;
+            }
           }
+
+          logger.info({
+            event: events.BACKFILL,
+            msg: 'BCRA Cambiarias backfill completed',
+            data: { success: successCount, failed: failCount, total: seriesToProcess.length },
+          });
+
+          this.handleBackfillSuccess();
         } catch (error) {
           this.handleBackfillFailure(error instanceof Error ? error.message : String(error));
         }

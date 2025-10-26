@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "populate-bcra": "tsx src/interfaces/cli/populate-bcra-series.ts",
+    "populate-series": "tsx src/interfaces/cli/populate-series.ts",
+    "populate-bcra": "tsx src/interfaces/cli/populate-series.ts -- --provider BCRA_MONETARIAS",
     "backfill": "tsx src/interfaces/cli/backfill.ts",
     "backfill-cambiarias": "tsx src/interfaces/cli/backfill-cambiarias.ts",
     "lint": "eslint .",
@@ -38,16 +39,13 @@
     "agentkeepalive": "^4.6.0",
     "axios": "^1.12.2",
     "commander": "^11.1.0",
-    "node-cron": "^3.0.3",
     "pg": "^8.11.3",
     "pino": "^8.17.2",
-    "undici": "^6.19.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.5",
-    "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.10.9",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
