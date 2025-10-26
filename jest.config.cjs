@@ -4,6 +4,7 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.spec.ts', '**/tests/**/*.spec.ts', '**/*.spec.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
@@ -13,8 +14,28 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  moduleNameMapping: {
+  moduleNameMapper: {
+    '^@/(.*)\\.js$': '<rootDir>/src/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^(\\./.*)\\.js$': '$1',
+    '^(\\.\\./.*)\\.js$': '$1',
+  },
+  moduleDirectories: ['node_modules', '<rootDir>/src'],
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          baseUrl: '.',
+          paths: {
+            '@/*': ['./src/*'],
+          },
+          moduleResolution: 'node',
+        },
+        extensionsToTreatAsEsm: ['.ts'],
+        useESM: true,
+      },
+    ],
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   testTimeout: 10000,
